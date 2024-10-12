@@ -1,0 +1,26 @@
+---
+name: Workflow
+
+on:
+  pull_request:
+    types:
+    - opened
+    - synchronize
+
+jobs:
+  test:
+    if: ${{ ! github.event.pull_request.draft }}
+    runs-on: docker
+    env:
+      GO_TEST_VERBOSE: "1"
+      GO_TEST_COVER: "1"
+    steps:
+    - name: Checkout Repository
+      uses: https://code.forgejo.org/actions/checkout@v4
+    - name: Test
+      uses: https://codeflow.dananglin.me.uk/actions/mage-ci@main
+      with:
+        target: test
+      env:
+        PROJECT_TEST_VERBOSE: "1"
+        PROJECT_TEST_COVER: "1"

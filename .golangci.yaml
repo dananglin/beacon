@@ -1,0 +1,22 @@
+---
+run:
+  concurrency: 2
+  timeout: 1m
+  issues-exit-code: 1
+  tests: true
+
+output:
+  formats: colored-line-number
+  print-issues-lines: true
+  print-linter-name: true
+  uniq-by-line: true
+  sort-results: true
+
+linters-settings:
+  lll:
+    line-length: 140
+
+linters:
+  enable-all: true
+  # disable:
+  fast: false
