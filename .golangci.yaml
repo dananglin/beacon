@@ -13,6 +13,14 @@ output:
   sort-results: true
 
 linters-settings:
+  depguard:
+    rules:
+      main:
+        files:
+        - $all
+        allow:
+        - $gostd
+        - codeflow.dananglin.me.uk/apollo/indieauth-server
   lll:
     line-length: 140
 

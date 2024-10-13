@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"time"
 
 	"github.com/magefile/mage/mg"
@@ -14,13 +15,15 @@ import (
 )
 
 const (
-	app                  = "binary"
+	app                  = "indieauth-server"
 	defaultInstallPrefix = "/usr/local"
-	envInstallPrefix     = "PROJECT_INSTALL_PREFIX"
-	envTestVerbose       = "PROJECT_TEST_VERBOSE"
-	envTestCover         = "PROJECT_TEST_COVER"
-	envBuildRebuildAll   = "PROJECT_BUILD_REBUILD_ALL"
-	envBuildVerbose      = "PROJECT_BUILD_VERBOSE"
+
+	envInstallPrefix    = "PROJECT_INSTALL_PREFIX"
+	envTestVerbose      = "PROJECT_TEST_VERBOSE"
+	envTestCover        = "PROJECT_TEST_COVER"
+	envBuildRebuildAll  = "PROJECT_BUILD_REBUILD_ALL"
+	envBuildVerbose     = "PROJECT_BUILD_VERBOSE"
+	envFailOnFormatting = "PROJECT_FAIL_ON_FORMATTING"
 )
 
 var (
@@ -52,11 +55,46 @@ func Lint() error {
 	return sh.RunV("golangci-lint", "run", "--color", "always")
 }
 
+func Gosec() error {
+	return sh.RunV("gosec", "./...")
+}
+
+func Staticcheck() error {
+	return sh.RunV("staticcheck", "./...")
+}
+
+// Gofmt checks the code for formatting.
+// To fail on formatting set PROJECT_FAIL_ON_FORMATTING=1
+func Gofmt() error {
+	output, err := sh.Output("go", "fmt", "./...")
+	if err != nil {
+		return err
+	}
+
+	formattedFiles := ""
+
+	for _, file := range strings.Split(output, "\n") {
+		formattedFiles += "\n- " + file
+	}
+
+	if os.Getenv(envFailOnFormatting) != "1" {
+		fmt.Println(formattedFiles)
+
+		return nil
+	}
+
+	if len(output) != 0 {
+		return fmt.Errorf("The following files needed to be formatted: %s", formattedFiles)
+	}
+
+	return nil
+}
+
 // Build build the executable.
 // To rebuild packages that are already up-to-date set PROJECT_BUILD_REBUILD_ALL=1
 // To enable verbose mode set PROJECT_BUILD_VERBOSE=1
 func Build() error {
-	main := "main.go"
+	main := "./cmd/" + app
 	flags := ldflags()
 	build := sh.RunCmd("go", "build")
 	args := []string{"-ldflags=" + flags, "-o", binary}
@@ -110,10 +148,21 @@ func Clean() error {
 
 // ldflags returns the build flags.
 func ldflags() string {
-	ldflagsfmt := "-s -w -X main.binaryVersion=%s -X main.gitCommit=%s -X main.goVersion=%s -X main.buildTime=%s"
+	versionPackage := "codeflow.dananglin.me.uk/apollo/indieauth-server/internal/info"
+	binaryVersionVar := versionPackage + "." + "BinaryVersion"
+	gitCommitVar := versionPackage + "." + "GitCommit"
+	goVersionVar := versionPackage + "." + "GoVersion"
+	buildTimeVar := versionPackage + "." + "BuildTime"
+	ldflagsfmt := "-s -w -X %s=%s -X %s=%s -X %s=%s -X %s=%s"
 	buildTime := time.Now().UTC().Format(time.RFC3339)
 
-	return fmt.Sprintf(ldflagsfmt, version(), gitCommit(), runtime.Version(), buildTime)
+	return fmt.Sprintf(
+		ldflagsfmt,
+		binaryVersionVar, version(),
+		gitCommitVar, gitCommit(),
+		goVersionVar, runtime.Version(),
+		buildTimeVar, buildTime,
+	)
 }
 
 // version returns the latest git tag using git describe.

@@ -1,26 +1,48 @@
 ---
-name: Workflow
+name: CI
 
 on:
   pull_request:
+    branches:
+    - main
     types:
     - opened
     - synchronize
 
 jobs:
-  test:
+  tests:
+    name: Tests
     if: ${{ ! github.event.pull_request.draft }}
     runs-on: docker
-    env:
-      GO_TEST_VERBOSE: "1"
-      GO_TEST_COVER: "1"
     steps:
     - name: Checkout Repository
       uses: https://code.forgejo.org/actions/checkout@v4
-    - name: Test
+    - name: Run tests
       uses: https://codeflow.dananglin.me.uk/actions/mage-ci@main
       with:
         target: test
       env:
         PROJECT_TEST_VERBOSE: "1"
         PROJECT_TEST_COVER: "1"
+    - name: Run gosec
+      uses: https://codeflow.dananglin.me.uk/actions/mage-ci@main
+      with:
+        target: gosec
+
+  style:
+    name: Style
+    if: ${{ ! github.event.pull_request.draft }}
+    runs-on: docker
+    steps:
+    - name: Checkout Repository
+      uses: https://code.forgejo.org/actions/checkout@v4
+    - name: Check formatting
+      uses: https://codeflow.dananglin.me.uk/actions/mage-ci@main
+      with:
+        target: gofmt
+      env:
+        PROJECT_FAIL_ON_FORMATTING: 1
+    - name: Run staticcheck
+      uses: https://codeflow.dananglin.me.uk/actions/mage-ci@main
+      with:
+        target: staticcheck
