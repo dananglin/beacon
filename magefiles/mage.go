@@ -55,10 +55,12 @@ func Lint() error {
 	return sh.RunV("golangci-lint", "run", "--color", "always")
 }
 
+// Gosec runs gosec against the code.
 func Gosec() error {
 	return sh.RunV("gosec", "./...")
 }
 
+// Staticcheck runs staticcheck against the code.
 func Staticcheck() error {
 	return sh.RunV("staticcheck", "./...")
 }
@@ -88,6 +90,11 @@ func Gofmt() error {
 	}
 
 	return nil
+}
+
+// Govet runs go vet against the code.
+func Govet() error {
+	return sh.RunV("go", "vet", "./...")
 }
 
 // Build build the executable.

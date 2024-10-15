@@ -28,6 +28,10 @@ jobs:
       uses: https://codeflow.dananglin.me.uk/actions/mage-ci@main
       with:
         target: gosec
+    - name: Run go vet
+      uses: https://codeflow.dananglin.me.uk/actions/mage-ci@main
+      with:
+        target: govet
 
   style:
     name: Style

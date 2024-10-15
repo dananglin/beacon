@@ -3,18 +3,15 @@ package executors
 import (
 	"flag"
 	"fmt"
-	"log/slog"
-	"net/http"
-	"time"
 
-	"codeflow.dananglin.me.uk/apollo/indieauth-server/internal/info"
-	"codeflow.dananglin.me.uk/apollo/indieauth-server/internal/router"
+	"codeflow.dananglin.me.uk/apollo/indieauth-server/internal/config"
+	"codeflow.dananglin.me.uk/apollo/indieauth-server/internal/server"
 )
 
 type serveExecutor struct {
 	*flag.FlagSet
 
-	address string
+	configFile string
 }
 
 func executeServeCommand(args []string) error {
@@ -24,7 +21,7 @@ func executeServeCommand(args []string) error {
 		FlagSet: flag.NewFlagSet(executorName, flag.ExitOnError),
 	}
 
-	executor.StringVar(&executor.address, "address", "0.0.0.0:8080", "The address that the server will listen on")
+	executor.StringVar(&executor.configFile, "config", "", "The path to the config file")
 
 	if err := executor.Parse(args); err != nil {
 		return fmt.Errorf("(%s) flag parsing error: %w", executorName, err)
@@ -38,18 +35,12 @@ func executeServeCommand(args []string) error {
 }
 
 func (e *serveExecutor) execute() error {
-	server := http.Server{
-		Addr:              e.address,
-		Handler:           router.NewServeMux(),
-		ReadHeaderTimeout: 1 * time.Second,
-	}
-
-	slog.Info(info.ApplicationName+" is listening for web requests", "address", e.address)
-
-	err := server.ListenAndServe()
+	cfg, err := config.NewConfig(e.configFile)
 	if err != nil {
-		return fmt.Errorf("error running the server: %w", err)
+		return fmt.Errorf("unable to load the config: %w", err)
 	}
 
-	return nil
+	srv := server.NewServer(cfg)
+
+	return srv.Serve()
 }
