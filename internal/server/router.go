@@ -1,7 +1,10 @@
 package server
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"fmt"
+	"log/slog"
 	"net/http"
 
 	"codeflow.dananglin.me.uk/apollo/indieauth-server/internal/config"
@@ -10,13 +13,30 @@ import (
 func newMux(cfg config.Config) *http.ServeMux {
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("GET /.well-known/oauth-authorization-server", metadataHandleFunc(cfg.Domain))
+	mux.Handle("GET /.well-known/oauth-authorization-server", setRequestID(metadataHandler(cfg.Domain)))
 
 	return mux
 }
 
-func metadataHandleFunc(domain string) http.HandlerFunc {
-	return func(writer http.ResponseWriter, _ *http.Request) {
+func setRequestID(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		requestID := "UNKNOWN"
+		id := make([]byte, 16)
+
+		if _, err := rand.Read(id); err != nil {
+			slog.Error("unable to create the request ID.", "error", err.Error())
+		} else {
+			requestID = hex.EncodeToString(id)
+		}
+
+		writer.Header().Set("X-Request-ID", requestID)
+
+		next.ServeHTTP(writer, request)
+	})
+}
+
+func metadataHandler(domain string) http.Handler {
+	return http.HandlerFunc(func(writer http.ResponseWriter, _ *http.Request) {
 		metadata := struct {
 			Issuer                        string   `json:"issuer"`
 			AuthorizationEndpoint         string   `json:"authorization_endpoint"`
@@ -31,6 +51,6 @@ func metadataHandleFunc(domain string) http.HandlerFunc {
 			CodeChallengeMethodsSupported: []string{"S256"},
 		}
 
-		sendJSONResponse(writer, http.StatusOK, metadata)
-	}
+		sendResponse(writer, http.StatusOK, metadata)
+	})
 }

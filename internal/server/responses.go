@@ -2,21 +2,45 @@ package server
 
 import (
 	"encoding/json"
+	"fmt"
 	"log/slog"
 	"net/http"
 )
 
-func sendJSONResponse(w http.ResponseWriter, statusCode int, payload any) {
+func sendResponse(writer http.ResponseWriter, statusCode int, payload any) {
 	data, err := json.Marshal(payload)
 	if err != nil {
-		slog.Error("Error marshalling the response to JSON", "error", err.Error())
-
-		w.WriteHeader(http.StatusInternalServerError)
+		sendServerError(
+			writer,
+			fmt.Errorf("error marshalling the JSON response: %w", err),
+		)
 
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(statusCode)
-	_, _ = w.Write(data)
+	writer.Header().Set("Content-Type", "application/json")
+	writer.WriteHeader(statusCode)
+	_, _ = writer.Write(data)
+}
+
+func sendClientError(writer http.ResponseWriter, statusCode int, err error) {
+	sendErrorResponse(
+		writer,
+		statusCode,
+		"Client Error: "+err.Error(),
+	)
+}
+
+func sendServerError(writer http.ResponseWriter, err error) {
+	sendErrorResponse(
+		writer,
+		http.StatusInternalServerError,
+		"Server Error: "+err.Error(),
+	)
+}
+
+func sendErrorResponse(writer http.ResponseWriter, statusCode int, message string) {
+	slog.Error(message, "request-id", writer.Header().Get("X-Request-ID"))
+
+	http.Error(writer, http.StatusText(statusCode), statusCode)
 }
