@@ -5,21 +5,7 @@ import (
 	"encoding/hex"
 	"log/slog"
 	"net/http"
-
-	"codeflow.dananglin.me.uk/apollo/indieauth-server/internal/config"
-	bolt "go.etcd.io/bbolt"
 )
-
-func newMux(cfg config.Config, boltdb *bolt.DB) *http.ServeMux {
-	mux := http.NewServeMux()
-
-	mux.Handle("GET /.well-known/oauth-authorization-server", setRequestID(getMetadata(cfg.Domain)))
-	mux.Handle("GET /setup", setRequestID(getSetupForm(boltdb)))
-	mux.Handle("POST /setup", setRequestID(setupAccount(boltdb)))
-	mux.Handle("GET /setup/confirmation", setRequestID(http.HandlerFunc(confirmation)))
-
-	return mux
-}
 
 func setRequestID(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {

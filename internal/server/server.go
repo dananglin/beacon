@@ -9,10 +9,13 @@ import (
 	"codeflow.dananglin.me.uk/apollo/indieauth-server/internal/config"
 	"codeflow.dananglin.me.uk/apollo/indieauth-server/internal/database"
 	"codeflow.dananglin.me.uk/apollo/indieauth-server/internal/info"
+	bolt "go.etcd.io/bbolt"
 )
 
 type Server struct {
 	httpServer *http.Server
+	boltdb     *bolt.DB
+	domainName string
 }
 
 func NewServer(configPath string) (*Server, error) {
@@ -22,7 +25,7 @@ func NewServer(configPath string) (*Server, error) {
 	}
 
 	if cfg.Database.Path == "" {
-		return nil, fmt.Errorf("please set the database path")
+		return nil, ErrMissingDatabasePath
 	}
 
 	boltdb, err := database.New(cfg.Database.Path)
@@ -32,15 +35,16 @@ func NewServer(configPath string) (*Server, error) {
 
 	address := fmt.Sprintf("%s:%d", cfg.BindAddress, cfg.Port)
 
-	httpServer := http.Server{
-		Addr:              address,
-		ReadHeaderTimeout: 1 * time.Second,
-		Handler:           newMux(cfg, boltdb),
+	server := Server{
+		httpServer: &http.Server{
+			Addr:              address,
+			ReadHeaderTimeout: 1 * time.Second,
+		},
+		boltdb:     boltdb,
+		domainName: cfg.Domain,
 	}
 
-	server := Server{
-		httpServer: &httpServer,
-	}
+	server.setupRouter()
 
 	return &server, nil
 }
@@ -53,4 +57,34 @@ func (s *Server) Serve() error {
 	}
 
 	return nil
+}
+
+func (s *Server) setupRouter() {
+	mux := http.NewServeMux()
+
+	mux.Handle("GET /", http.HandlerFunc(s.rootRedirect))
+	mux.Handle("GET /.well-known/oauth-authorization-server", setRequestID(http.HandlerFunc(s.getMetadata)))
+	mux.Handle("GET /setup", setRequestID(http.HandlerFunc(s.setup)))
+	mux.Handle("POST /setup", setRequestID(http.HandlerFunc(s.setup)))
+	mux.Handle("GET /setup/confirmation", setRequestID(http.HandlerFunc(s.confirmation)))
+
+	s.httpServer.Handler = mux
+}
+
+func (s *Server) rootRedirect(writer http.ResponseWriter, request *http.Request) {
+	initialised, err := database.Initialised(s.boltdb)
+	if err != nil {
+		sendServerError(
+			writer,
+			fmt.Errorf("unable to check if the application has been initialised: %w", err),
+		)
+
+		return
+	}
+
+	if !initialised {
+		http.Redirect(writer, request, "/setup", http.StatusSeeOther)
+	}
+
+	// TODO: redirect to the login page
 }
