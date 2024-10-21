@@ -3,11 +3,12 @@ package server
 import (
 	"encoding/json"
 	"fmt"
+	"html/template"
 	"log/slog"
 	"net/http"
 )
 
-func sendResponse(writer http.ResponseWriter, statusCode int, payload any) {
+func sendJSONResponse(writer http.ResponseWriter, statusCode int, payload any) {
 	data, err := json.Marshal(payload)
 	if err != nil {
 		sendServerError(
@@ -21,6 +22,30 @@ func sendResponse(writer http.ResponseWriter, statusCode int, payload any) {
 	writer.Header().Set("Content-Type", "application/json")
 	writer.WriteHeader(statusCode)
 	_, _ = writer.Write(data)
+}
+
+func generateAndSendHTMLResponse(writer http.ResponseWriter, templateFile string, statusCode int, data any) {
+	tmpl, err := template.ParseFS(templates, templateFile)
+	if err != nil {
+		sendServerError(
+			writer,
+			fmt.Errorf("error creating the HTML template: %w", err),
+		)
+
+		return
+	}
+
+	writer.Header().Set("Content-Type", "text/html")
+	writer.WriteHeader(statusCode)
+
+	if err := tmpl.Execute(writer, data); err != nil {
+		sendServerError(
+			writer,
+			fmt.Errorf("error generating HTML from the template: %w", err),
+		)
+
+		return
+	}
 }
 
 func sendClientError(writer http.ResponseWriter, statusCode int, err error) {

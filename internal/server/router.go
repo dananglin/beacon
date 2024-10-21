@@ -3,17 +3,20 @@ package server
 import (
 	"crypto/rand"
 	"encoding/hex"
-	"fmt"
 	"log/slog"
 	"net/http"
 
 	"codeflow.dananglin.me.uk/apollo/indieauth-server/internal/config"
+	bolt "go.etcd.io/bbolt"
 )
 
-func newMux(cfg config.Config) *http.ServeMux {
+func newMux(cfg config.Config, boltdb *bolt.DB) *http.ServeMux {
 	mux := http.NewServeMux()
 
-	mux.Handle("GET /.well-known/oauth-authorization-server", setRequestID(metadataHandler(cfg.Domain)))
+	mux.Handle("GET /.well-known/oauth-authorization-server", setRequestID(getMetadata(cfg.Domain)))
+	mux.Handle("GET /setup", setRequestID(getSetupForm(boltdb)))
+	mux.Handle("POST /setup", setRequestID(setupAccount(boltdb)))
+	mux.Handle("GET /setup/confirmation", setRequestID(http.HandlerFunc(confirmation)))
 
 	return mux
 }
@@ -32,25 +35,5 @@ func setRequestID(next http.Handler) http.Handler {
 		writer.Header().Set("X-Request-ID", requestID)
 
 		next.ServeHTTP(writer, request)
-	})
-}
-
-func metadataHandler(domain string) http.Handler {
-	return http.HandlerFunc(func(writer http.ResponseWriter, _ *http.Request) {
-		metadata := struct {
-			Issuer                        string   `json:"issuer"`
-			AuthorizationEndpoint         string   `json:"authorization_endpoint"`
-			TokenEndpoint                 string   `json:"token_endpoint"`
-			ServiceDocumentation          string   `json:"service_documentation"`
-			CodeChallengeMethodsSupported []string `json:"code_challenge_methods_supported"`
-		}{
-			Issuer:                        fmt.Sprintf("https://%s/", domain),
-			AuthorizationEndpoint:         fmt.Sprintf("https://%s/auth", domain),
-			TokenEndpoint:                 fmt.Sprintf("https://%s/token", domain),
-			ServiceDocumentation:          "https://indieauth.spec.indieweb.org",
-			CodeChallengeMethodsSupported: []string{"S256"},
-		}
-
-		sendResponse(writer, http.StatusOK, metadata)
 	})
 }

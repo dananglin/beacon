@@ -1,0 +1,8 @@
+{
+    "bindAddress": "127.0.0.1",
+    "port": 443,
+    "domain": "auth.example.net",
+    "database": {
+      "path": "/app/data/indieauth.db"
+    }
+}

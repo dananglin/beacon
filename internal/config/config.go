@@ -8,9 +8,14 @@ import (
 )
 
 type Config struct {
-	BindAddress string `json:"bindAddress"`
-	Port        int32  `json:"port"`
-	Domain      string `json:"domain"`
+	BindAddress string   `json:"bindAddress"`
+	Port        int32    `json:"port"`
+	Domain      string   `json:"domain"`
+	Database    Database `json:"database"`
+}
+
+type Database struct {
+	Path string `json:"path"`
 }
 
 func NewConfig(path string) (Config, error) {

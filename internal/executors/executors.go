@@ -1,17 +1,39 @@
 package executors
 
+import (
+	"fmt"
+
+	"codeflow.dananglin.me.uk/apollo/indieauth-server/internal/executors/actions"
+	"codeflow.dananglin.me.uk/apollo/indieauth-server/internal/utilities"
+)
+
+type UnrecognisedActionError struct {
+	action string
+}
+
+func (e UnrecognisedActionError) Error() string {
+	return "unrecognised action: " + e.action
+}
+
 func Execute(args []string) error {
-	command := newCommand(args)
-
-	executorFuncMap := map[string]func(args []string) error{
-		"serve":   executeServeCommand,
-		"version": executeVersionCommand,
+	actionMap := map[string]actions.Executor{
+		"serve":   actions.NewServe(),
+		"version": actions.NewVersion(),
 	}
 
-	executeFunc, ok := executorFuncMap[command.name]
+	actionArgs, err := utilities.ParseArgs(args)
+	if err != nil {
+		return fmt.Errorf("args parsing error: %w", err)
+	}
+
+	action, ok := actionMap[actionArgs.Name]
 	if !ok {
-		return UnrecognisedCommandError{command.name}
+		return UnrecognisedActionError{action: actionArgs.Name}
 	}
 
-	return executeFunc(command.args)
+	if err := action.Execute(actionArgs.Args); err != nil {
+		return fmt.Errorf("execution error: %w", err)
+	}
+
+	return nil
 }

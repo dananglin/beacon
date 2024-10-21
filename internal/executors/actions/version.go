@@ -1,4 +1,4 @@
-package executors
+package actions
 
 import (
 	"flag"
@@ -10,32 +10,36 @@ import (
 	"codeflow.dananglin.me.uk/apollo/indieauth-server/internal/info"
 )
 
-type versionExecutor struct {
+type Version struct {
 	*flag.FlagSet
 
 	showFullVersion bool
 }
 
-func executeVersionCommand(args []string) error {
-	executorName := "version"
+func NewVersion() *Version {
+	name := "version"
 
-	executor := versionExecutor{
-		FlagSet: flag.NewFlagSet(executorName, flag.ExitOnError),
+	version := Version{
+		FlagSet: flag.NewFlagSet(name, flag.ExitOnError),
 	}
 
-	executor.BoolVar(&executor.showFullVersion, "full", false, "Print the applications full build information")
+	version.BoolVar(&version.showFullVersion, "full", false, "Print the applications full build information")
 
-	if err := executor.Parse(args); err != nil {
-		return fmt.Errorf("(%s) flag parsing error: %w", executorName, err)
+	return &version
+}
+
+func (a *Version) Execute(args []string) error {
+	if err := a.Parse(args); err != nil {
+		return fmt.Errorf("(version) flag parsing error: %w", err)
 	}
 
-	executor.printVersion()
+	a.printVersion()
 
 	return nil
 }
 
-func (e *versionExecutor) printVersion() {
-	if !e.showFullVersion {
+func (a *Version) printVersion() {
+	if !a.showFullVersion {
 		fmt.Fprintf(os.Stdout, "%s %s\n", info.ApplicationName, info.BinaryVersion)
 
 		return

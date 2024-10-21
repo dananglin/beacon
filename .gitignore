@@ -1,3 +1,5 @@
 /__build/*
-!__build/.gitkeep
+!/__build/.gitkeep
 /.environment/*
+/internal/database/testdata/*
+!/internal/database/testdata/.gitkeep
