@@ -37,21 +37,27 @@ func (s *Server) setup(writer http.ResponseWriter, request *http.Request) {
 	switch request.Method {
 	case http.MethodGet:
 		s.getSetupForm(writer, request)
+
+		return
 	case http.MethodPost:
 		s.setupAccount(writer, request)
+
+		return
 	default:
 		sendClientError(
 			writer,
 			http.StatusMethodNotAllowed,
 			fmt.Errorf("the setup endpoint does not support %s", request.Method),
 		)
+
+		return
 	}
 }
 
 func (s *Server) getSetupForm(writer http.ResponseWriter, _ *http.Request) {
 	form := formProfile{
-		Website:  "",
-		Password: "",
+		ProfileID: "",
+		Password:  "",
 		Profile: formProfileInfo{
 			DisplayName: "",
 			URL:         "",
@@ -63,7 +69,7 @@ func (s *Server) getSetupForm(writer http.ResponseWriter, _ *http.Request) {
 
 	generateAndSendHTMLResponse(
 		writer,
-		"templates/html/setup.html.gotmpl",
+		"setup",
 		http.StatusOK,
 		form,
 	)
@@ -81,8 +87,8 @@ func (s *Server) setupAccount(writer http.ResponseWriter, request *http.Request)
 	}
 
 	form := formProfile{
-		Website:  request.PostFormValue("website"),
-		Password: request.PostFormValue("password"),
+		ProfileID: request.PostFormValue("profileID"),
+		Password:  request.PostFormValue("password"),
 		Profile: formProfileInfo{
 			DisplayName: request.PostFormValue("profileDisplayName"),
 			URL:         request.PostFormValue("profileURL"),
@@ -95,7 +101,7 @@ func (s *Server) setupAccount(writer http.ResponseWriter, request *http.Request)
 	if validForm := form.validate(); !validForm {
 		generateAndSendHTMLResponse(
 			writer,
-			"templates/html/setup.html.gotmpl",
+			"setup",
 			http.StatusUnprocessableEntity,
 			form,
 		)
@@ -109,6 +115,8 @@ func (s *Server) setupAccount(writer http.ResponseWriter, request *http.Request)
 			writer,
 			fmt.Errorf("unable to hash the password: %w", err),
 		)
+
+		return
 	}
 
 	timestamp := time.Now()
@@ -116,6 +124,7 @@ func (s *Server) setupAccount(writer http.ResponseWriter, request *http.Request)
 		CreatedAt:      timestamp,
 		UpdatedAt:      timestamp,
 		HashedPassword: hashedPassword,
+		TokenVersion:   0,
 		Information: database.ProfileInformation{
 			Name:     form.Profile.DisplayName,
 			URL:      form.Profile.URL,
@@ -124,7 +133,7 @@ func (s *Server) setupAccount(writer http.ResponseWriter, request *http.Request)
 		},
 	}
 
-	if err := database.UpdateProfile(s.boltdb, form.Website, newProfile); err != nil {
+	if err := database.UpdateProfile(s.boltdb, form.ProfileID, newProfile); err != nil {
 		sendServerError(
 			writer,
 			fmt.Errorf("unable to create the profile in the database: %w", err),
@@ -138,22 +147,15 @@ func (s *Server) setupAccount(writer http.ResponseWriter, request *http.Request)
 			writer,
 			fmt.Errorf("unable to update the app's initialised flag: %w", err),
 		)
+
+		return
 	}
 
-	http.Redirect(writer, request, "/setup/confirmation", http.StatusSeeOther)
-}
-
-func (s *Server) confirmation(writer http.ResponseWriter, _ *http.Request) {
-	generateAndSendHTMLResponse(
-		writer,
-		"templates/html/confirmation.html.gotmpl",
-		http.StatusOK,
-		struct{}{},
-	)
+	http.Redirect(writer, request, "/profile/login", http.StatusSeeOther)
 }
 
 type formProfile struct {
-	Website     string
+	ProfileID   string
 	Password    string
 	Profile     formProfileInfo
 	FieldErrors map[string]string
@@ -166,22 +168,22 @@ type formProfileInfo struct {
 	PhotoURL    string
 }
 
-func (n *formProfile) validate() bool {
-	n.FieldErrors = make(map[string]string)
+func (f *formProfile) validate() bool {
+	f.FieldErrors = make(map[string]string)
 
-	canonicalisedWebsite, err := utilities.ValidateProfileURL(strings.TrimSpace(n.Website))
+	canonicalisedWebsite, err := utilities.ValidateProfileURL(strings.TrimSpace(f.ProfileID))
 	if err != nil {
 		slog.Error("profile website validation failed", "error", err.Error())
 
-		n.FieldErrors["Website"] = "Please enter a valid website"
+		f.FieldErrors["ProfileID"] = "Please enter a valid website"
 	} else {
-		n.Website = canonicalisedWebsite
+		f.ProfileID = canonicalisedWebsite
 	}
 
 	minPasswordLength := 8
-	if utf8.RuneCountInString(n.Password) < minPasswordLength {
-		n.FieldErrors["Password"] = "The password must be at least 8 characters long"
+	if utf8.RuneCountInString(f.Password) < minPasswordLength {
+		f.FieldErrors["Password"] = "The password must be at least 8 characters long"
 	}
 
-	return len(n.FieldErrors) == 0
+	return len(f.FieldErrors) == 0
 }

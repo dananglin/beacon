@@ -21,6 +21,7 @@ linters-settings:
         allow:
         - $gostd
         - codeflow.dananglin.me.uk/apollo/indieauth-server
+        - github.com/golang-jwt/jwt/v5
   lll:
     line-length: 140
 

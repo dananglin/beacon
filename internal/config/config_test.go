@@ -16,6 +16,9 @@ func TestConfig(t *testing.T) {
 		Database: config.Database{
 			Path: "/app/data/indieauth.db",
 		},
+		JWT: config.JWT{
+			Secret: "N4N6Zpwq6tCHR3CcvHmnUynQhU6R6dk0wfi3kFV1o9I0OV6l53xRxQlvQA76aYgP",
+		},
 	}
 
 	configPath := filepath.Join("testdata", t.Name()+".golden")

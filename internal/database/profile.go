@@ -18,16 +18,17 @@ func (e BucketNotExistError) Error() string {
 }
 
 type ProfileNotExistError struct {
-	website string
+	profileID string
 }
 
 func (e ProfileNotExistError) Error() string {
-	return "the profile for '" + e.website + "' does not exist"
+	return "the profile for '" + e.profileID + "' does not exist"
 }
 
 type Profile struct {
 	CreatedAt      time.Time
 	UpdatedAt      time.Time
+	TokenVersion   int
 	HashedPassword string
 	Information    ProfileInformation
 }
@@ -40,7 +41,7 @@ type ProfileInformation struct {
 }
 
 // UpdateProfile updates a profile in the database.
-func UpdateProfile(boltdb *bolt.DB, website string, user Profile) error {
+func UpdateProfile(boltdb *bolt.DB, profileID string, user Profile) error {
 	bucketName := getBucketName()
 
 	err := boltdb.Update(func(tx *bolt.Tx) error {
@@ -50,7 +51,7 @@ func UpdateProfile(boltdb *bolt.DB, website string, user Profile) error {
 			return BucketNotExistError{bucket: string(bucketName)}
 		}
 
-		key := []byte(website)
+		key := []byte(profileID)
 
 		buffer := new(bytes.Buffer)
 		if err := gob.NewEncoder(buffer).Encode(user); err != nil {
@@ -78,10 +79,10 @@ func UpdateProfile(boltdb *bolt.DB, website string, user Profile) error {
 }
 
 // ProfileExists checks if a profile exists for a given website.
-func ProfileExists(boltdb *bolt.DB, website string) (bool, error) {
+func ProfileExists(boltdb *bolt.DB, profileID string) (bool, error) {
 	profileExists := false
 	bucketName := getBucketName()
-	key := []byte(website)
+	key := []byte(profileID)
 
 	if err := boltdb.View(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket(bucketName)
@@ -103,18 +104,10 @@ func ProfileExists(boltdb *bolt.DB, website string) (bool, error) {
 	return profileExists, nil
 }
 
-func GetProfileInformation(boltdb *bolt.DB, website string) (ProfileInformation, error) {
-	profile, err := getProfile(boltdb, website)
-	if err != nil {
-		return ProfileInformation{}, fmt.Errorf("error getting profile: %w", err)
-	}
-
-	return profile.Information, nil
-}
-
-func getProfile(boltdb *bolt.DB, website string) (Profile, error) {
+// GetProfile returns the profile from a given website ID.
+func GetProfile(boltdb *bolt.DB, profileID string) (Profile, error) {
 	bucketName := getBucketName()
-	key := []byte(website)
+	key := []byte(profileID)
 
 	var profile Profile
 
@@ -127,7 +120,7 @@ func getProfile(boltdb *bolt.DB, website string) (Profile, error) {
 
 		data := bucket.Get(key)
 		if data == nil {
-			return ProfileNotExistError{website: website}
+			return ProfileNotExistError{profileID: profileID}
 		}
 
 		buffer := bytes.NewBuffer(data)

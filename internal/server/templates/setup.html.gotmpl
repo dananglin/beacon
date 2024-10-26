@@ -1,11 +1,15 @@
+{{ define "setup" }}
+<!DOCTYPE html>
+<html lang="en">
+<body>
 <h1>Set up your profile</h1>
-<form action="/setup" method="POST" novalidate>
+<form action="/profile/setup" method="POST" novalidate>
     <div>
-        <label>Website (required):</label><br />
-	{{ with .FieldErrors.Website }}
+        <label>Profile ID (required):</label><br />
+	{{ with .FieldErrors.ProfileID }}
 	    <label class="error">{{ . }}</label><br />
 	{{ end }}
-        <input type="text" name="website" value="{{ .Website }}"><br />
+        <input type="text" name="profileID" value="{{ .ProfileID }}"><br />
     </div>
     <div>
         <label>Password (required):</label><br />
@@ -24,7 +28,7 @@
     </div>
     <div>
         <label>Profile email:</label><br />
-        <input type="text" name="profileEmail" value="{{ .Profile.Email }}"><br />
+        <input type="email" name="profileEmail" value="{{ .Profile.Email }}"><br />
     </div>
     <div>
         <label>Profile photo URL:</label><br />
@@ -34,3 +38,6 @@
         <input type="submit" value="Create account">
     </div>
 </form>
+</body>
+</html>
+{{ end }}

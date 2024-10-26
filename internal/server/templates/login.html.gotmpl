@@ -1,0 +1,30 @@
+{{ define "login" }}
+<!DOCTYPE html>
+<html lang="en">
+<body>
+<h1>Log into your account</h1>
+<form action="/profile/login" method="POST" novalidate>
+    {{ if .AuthenticationFailure }}
+    <div class="error">The Profile ID or password is incorrect</div>
+    {{ end }}
+    <div>
+        <label>Profile ID:</label><br />
+	{{ with .FieldErrors.ProfileID }}
+	    <label class="error">{{ . }}</label><br />
+	{{ end }}
+	<input type="text" name="profileID" value="{{ .ProfileID }}"><br />
+    </div>
+    <div>
+        <label>Password:</label><br />
+	{{ with .FieldErrors.Password }}
+	    <label class="error">{{ . }}</label><br />
+	{{ end }}
+	<input type="password" name="password"><br />
+    </div>
+    <div>
+        <input type="submit" value="Login">
+    </div>
+</form>
+</body>
+</html>
+{{ end }}

@@ -2,9 +2,15 @@ package config
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
+)
+
+var (
+	ErrMissingDatabasePath = errors.New("please set the database path")
+	ErrMissingJWTSecret    = errors.New("JWT Secret is empty")
 )
 
 type Config struct {
@@ -12,10 +18,15 @@ type Config struct {
 	Port        int32    `json:"port"`
 	Domain      string   `json:"domain"`
 	Database    Database `json:"database"`
+	JWT         JWT      `json:"jwt"`
 }
 
 type Database struct {
 	Path string `json:"path"`
+}
+
+type JWT struct {
+	Secret string `json:"secret"`
 }
 
 func NewConfig(path string) (Config, error) {
@@ -37,6 +48,14 @@ func NewConfig(path string) (Config, error) {
 			"unable to decode the JSON data: %w",
 			err,
 		)
+	}
+
+	if cfg.Database.Path == "" {
+		return Config{}, ErrMissingDatabasePath
+	}
+
+	if cfg.JWT.Secret == "" {
+		return Config{}, ErrMissingJWTSecret
 	}
 
 	return cfg, nil

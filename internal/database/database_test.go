@@ -82,6 +82,7 @@ func TestDatabase(t *testing.T) {
 		HashedPassword: hashedPassword,
 		CreatedAt:      timestamp,
 		UpdatedAt:      timestamp,
+		TokenVersion:   90,
 		Information: database.ProfileInformation{
 			Name:     "Bill Jones",
 			URL:      "https://billjones.example.net/about/me",
@@ -124,7 +125,7 @@ func TestDatabase(t *testing.T) {
 	// Retrieve the profile's information from the database
 	t.Log("Retrieving the profile's information from the database.")
 
-	gotProfileInfo, err := database.GetProfileInformation(boltdb, canonicalisedWebsiteURL)
+	gotProfile, err := database.GetProfile(boltdb, canonicalisedWebsiteURL)
 	if err != nil {
 		t.Fatalf(
 			"FAILED test %s: Unable to get the profile information from the database: %v",
@@ -135,18 +136,31 @@ func TestDatabase(t *testing.T) {
 		t.Log("Successfully received the profile's information from the database.")
 	}
 
-	if !reflect.DeepEqual(gotProfileInfo, profile.Information) {
+	if !reflect.DeepEqual(gotProfile.Information, profile.Information) {
 		t.Errorf(
 			"FAILED test %s: Unexpected profile information received from the database, want:\n%+v\ngot:\n%+v",
 			t.Name(),
 			profile.Information,
-			gotProfileInfo,
+			gotProfile,
 		)
 	} else {
 		t.Logf(
-			"PASSED test %s: Expected profile information received from the database, got:\n%+v",
+			"Expected profile information received from the database, got:\n%+v",
+			gotProfile,
+		)
+	}
+
+	if gotProfile.TokenVersion != profile.TokenVersion {
+		t.Errorf(
+			"FAILED test %s: Unexpected token version received from the database: want %d, got %d",
 			t.Name(),
-			gotProfileInfo,
+			profile.TokenVersion,
+			gotProfile.TokenVersion,
+		)
+	} else {
+		t.Logf(
+			"Expected token version received from the database: got %d",
+			gotProfile.TokenVersion,
 		)
 	}
 

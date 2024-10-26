@@ -3,6 +3,7 @@ module codeflow.dananglin.me.uk/apollo/indieauth-server
 go 1.23.2
 
 require (
+	github.com/golang-jwt/jwt/v5 v5.2.1
 	go.etcd.io/bbolt v1.3.11
 	golang.org/x/crypto v0.28.0
 )

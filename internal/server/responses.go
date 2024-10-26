@@ -24,8 +24,8 @@ func sendJSONResponse(writer http.ResponseWriter, statusCode int, payload any) {
 	_, _ = writer.Write(data)
 }
 
-func generateAndSendHTMLResponse(writer http.ResponseWriter, templateFile string, statusCode int, data any) {
-	tmpl, err := template.ParseFS(templates, templateFile)
+func generateAndSendHTMLResponse(writer http.ResponseWriter, templateName string, statusCode int, data any) {
+	tmpl, err := template.New(templateName).ParseFS(templates, "templates/*")
 	if err != nil {
 		sendServerError(
 			writer,
