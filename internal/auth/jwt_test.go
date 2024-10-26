@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"codeflow.dananglin.me.uk/apollo/indieauth-server/internal/auth"
+	"codeflow.dananglin.me.uk/apollo/beacon/internal/auth"
 	"github.com/golang-jwt/jwt/v5"
 )
 

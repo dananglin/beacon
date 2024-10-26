@@ -7,7 +7,7 @@ import (
 	"strings"
 	"text/tabwriter"
 
-	"codeflow.dananglin.me.uk/apollo/indieauth-server/internal/info"
+	"codeflow.dananglin.me.uk/apollo/beacon/internal/info"
 )
 
 type Version struct {

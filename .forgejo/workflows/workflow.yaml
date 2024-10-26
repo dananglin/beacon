@@ -22,8 +22,8 @@ jobs:
       with:
         target: test
       env:
-        PROJECT_TEST_VERBOSE: "1"
-        PROJECT_TEST_COVER: "1"
+        BEACON_TEST_VERBOSE: "1"
+        BEACON_TEST_COVER: "1"
     - name: Run gosec
       uses: https://codeflow.dananglin.me.uk/actions/mage-ci@main
       with:
@@ -45,7 +45,7 @@ jobs:
       with:
         target: gofmt
       env:
-        PROJECT_FAIL_ON_FORMATTING: 1
+        BEACON_FAIL_ON_FORMATTING: 1
     - name: Run staticcheck
       uses: https://codeflow.dananglin.me.uk/actions/mage-ci@main
       with:

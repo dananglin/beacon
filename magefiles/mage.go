@@ -15,25 +15,24 @@ import (
 )
 
 const (
-	app                  = "indieauth-server"
+	projectName          = "beacon"
+	defaultAppName       = projectName
 	defaultInstallPrefix = "/usr/local"
 
-	envInstallPrefix    = "PROJECT_INSTALL_PREFIX"
-	envTestVerbose      = "PROJECT_TEST_VERBOSE"
-	envTestCover        = "PROJECT_TEST_COVER"
-	envBuildRebuildAll  = "PROJECT_BUILD_REBUILD_ALL"
-	envBuildVerbose     = "PROJECT_BUILD_VERBOSE"
-	envFailOnFormatting = "PROJECT_FAIL_ON_FORMATTING"
+	envInstallPrefix    = "BEACON_INSTALL_PREFIX"
+	envTestVerbose      = "BEACON_TEST_VERBOSE"
+	envTestCover        = "BEACON_TEST_COVER"
+	envBuildRebuildAll  = "BEACON_BUILD_REBUILD_ALL"
+	envBuildVerbose     = "BEACON_BUILD_VERBOSE"
+	envFailOnFormatting = "BEACON_FAIL_ON_FORMATTING"
+	envAppName          = "BEACON_APP_NAME"
 )
 
-var (
-	Default = Build
-	binary  = "./__build/" + app
-)
+var Default = Build
 
 // Test run the go tests.
-// To enable verbose mode set PROJECT_TEST_VERBOSE=1.
-// To enable coverage mode set PROJECT_TEST_COVER=1.
+// To enable verbose mode set BEACON_TEST_VERBOSE=1.
+// To enable coverage mode set BEACON_TEST_COVER=1.
 func Test() error {
 	goTest := sh.RunCmd("go", "test")
 
@@ -66,7 +65,7 @@ func Staticcheck() error {
 }
 
 // Gofmt checks the code for formatting.
-// To fail on formatting set PROJECT_FAIL_ON_FORMATTING=1
+// To fail on formatting set BEACON_FAIL_ON_FORMATTING=1
 func Gofmt() error {
 	output, err := sh.Output("go", "fmt", "./...")
 	if err != nil {
@@ -98,12 +97,13 @@ func Govet() error {
 }
 
 // Build build the executable.
-// To rebuild packages that are already up-to-date set PROJECT_BUILD_REBUILD_ALL=1
-// To enable verbose mode set PROJECT_BUILD_VERBOSE=1
+// To rebuild packages that are already up-to-date set BEACON_BUILD_REBUILD_ALL=1
+// To enable verbose mode set BEACON_BUILD_VERBOSE=1
 func Build() error {
-	main := "./cmd/" + app
+	main := "./cmd/" + projectName
 	flags := ldflags()
 	build := sh.RunCmd("go", "build")
+	binary := filepath.Join("./__build", appName())
 	args := []string{"-ldflags=" + flags, "-o", binary}
 
 	if os.Getenv(envBuildRebuildAll) == "1" {
@@ -124,12 +124,14 @@ func Install() error {
 	mg.Deps(Build)
 
 	installPrefix := os.Getenv(envInstallPrefix)
+	app := appName()
+	binary := filepath.Join("./__build", app)
 
 	if installPrefix == "" {
 		installPrefix = defaultInstallPrefix
 	}
 
-	dest := filepath.Join(installPrefix, "bin", app)
+	dest := filepath.Join(installPrefix, "bin", appName())
 
 	if err := sh.Copy(dest, binary); err != nil {
 		return fmt.Errorf("unable to install %s; %w", dest, err)
@@ -142,6 +144,8 @@ func Install() error {
 
 // Clean clean the workspace.
 func Clean() error {
+	binary := filepath.Join("./__build", appName())
+
 	if err := sh.Rm(binary); err != nil {
 		return err
 	}
@@ -155,13 +159,17 @@ func Clean() error {
 
 // ldflags returns the build flags.
 func ldflags() string {
-	versionPackage := "codeflow.dananglin.me.uk/apollo/indieauth-server/internal/info"
-	binaryVersionVar := versionPackage + "." + "BinaryVersion"
-	gitCommitVar := versionPackage + "." + "GitCommit"
-	goVersionVar := versionPackage + "." + "GoVersion"
-	buildTimeVar := versionPackage + "." + "BuildTime"
-	ldflagsfmt := "-s -w -X %s=%s -X %s=%s -X %s=%s -X %s=%s"
-	buildTime := time.Now().UTC().Format(time.RFC3339)
+	var (
+		infoPackage        = "codeflow.dananglin.me.uk/apollo/beacon/internal/info"
+		binaryVersionVar   = infoPackage + "." + "BinaryVersion"
+		gitCommitVar       = infoPackage + "." + "GitCommit"
+		goVersionVar       = infoPackage + "." + "GoVersion"
+		buildTimeVar       = infoPackage + "." + "BuildTime"
+		applicationNameVar = infoPackage + "." + "ApplicationName"
+
+		buildTime  = time.Now().UTC().Format(time.RFC3339)
+		ldflagsfmt = "-s -w -X %s=%s -X %s=%s -X %s=%s -X %s=%s -X %s=%s"
+	)
 
 	return fmt.Sprintf(
 		ldflagsfmt,
@@ -169,6 +177,7 @@ func ldflags() string {
 		gitCommitVar, gitCommit(),
 		goVersionVar, runtime.Version(),
 		buildTimeVar, buildTime,
+		applicationNameVar, appName(),
 	)
 }
 
@@ -190,4 +199,17 @@ func gitCommit() string {
 	}
 
 	return commit
+}
+
+// appName returns the application's name.
+// The value of BEACON_APP_NAME is return if the environment variable is set
+// otherwise the default name is returned.
+func appName() string {
+	appName := os.Getenv(envAppName)
+
+	if appName == "" {
+		return defaultAppName
+	}
+
+	return appName
 }

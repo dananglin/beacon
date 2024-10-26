@@ -6,7 +6,7 @@ import (
 	"slices"
 	"testing"
 
-	"codeflow.dananglin.me.uk/apollo/indieauth-server/internal/utilities"
+	"codeflow.dananglin.me.uk/apollo/beacon/internal/utilities"
 )
 
 func TestParseArgs(t *testing.T) {

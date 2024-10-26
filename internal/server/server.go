@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"time"
 
-	"codeflow.dananglin.me.uk/apollo/indieauth-server/internal/config"
-	"codeflow.dananglin.me.uk/apollo/indieauth-server/internal/database"
-	"codeflow.dananglin.me.uk/apollo/indieauth-server/internal/info"
+	"codeflow.dananglin.me.uk/apollo/beacon/internal/config"
+	"codeflow.dananglin.me.uk/apollo/beacon/internal/database"
+	"codeflow.dananglin.me.uk/apollo/beacon/internal/info"
 	bolt "go.etcd.io/bbolt"
 )
 

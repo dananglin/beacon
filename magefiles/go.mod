@@ -1,4 +1,4 @@
-module codeflow.dananglin.me.uk/apollo/indieauth-server/magefiles
+module codeflow.dananglin.me.uk/apollo/beacon/magefiles
 
 go 1.23.2
 

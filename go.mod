@@ -1,4 +1,4 @@
-module codeflow.dananglin.me.uk/apollo/indieauth-server
+module codeflow.dananglin.me.uk/apollo/beacon
 
 go 1.23.2
 

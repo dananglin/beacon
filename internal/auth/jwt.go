@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"codeflow.dananglin.me.uk/apollo/indieauth-server/internal/info"
+	"codeflow.dananglin.me.uk/apollo/beacon/internal/info"
 	"github.com/golang-jwt/jwt/v5"
 )
 

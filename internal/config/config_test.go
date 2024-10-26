@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"testing"
 
-	"codeflow.dananglin.me.uk/apollo/indieauth-server/internal/config"
+	"codeflow.dananglin.me.uk/apollo/beacon/internal/config"
 )
 
 func TestConfig(t *testing.T) {

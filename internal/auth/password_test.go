@@ -3,7 +3,7 @@ package auth_test
 import (
 	"testing"
 
-	"codeflow.dananglin.me.uk/apollo/indieauth-server/internal/auth"
+	"codeflow.dananglin.me.uk/apollo/beacon/internal/auth"
 )
 
 func TestHashPassword(t *testing.T) {

@@ -4,7 +4,7 @@ import (
 	"log/slog"
 	"os"
 
-	"codeflow.dananglin.me.uk/apollo/indieauth-server/internal/executors"
+	"codeflow.dananglin.me.uk/apollo/beacon/internal/executors"
 )
 
 func main() {

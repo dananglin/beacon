@@ -5,7 +5,7 @@ import (
 	"slices"
 	"testing"
 
-	"codeflow.dananglin.me.uk/apollo/indieauth-server/internal/utilities"
+	"codeflow.dananglin.me.uk/apollo/beacon/internal/utilities"
 )
 
 func TestValidateProfileURL(t *testing.T) {

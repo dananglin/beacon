@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"codeflow.dananglin.me.uk/apollo/indieauth-server/internal/auth"
-	"codeflow.dananglin.me.uk/apollo/indieauth-server/internal/database"
-	"codeflow.dananglin.me.uk/apollo/indieauth-server/internal/utilities"
+	"codeflow.dananglin.me.uk/apollo/beacon/internal/auth"
+	"codeflow.dananglin.me.uk/apollo/beacon/internal/database"
+	"codeflow.dananglin.me.uk/apollo/beacon/internal/utilities"
 )
 
 func TestDatabase(t *testing.T) {

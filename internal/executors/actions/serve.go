@@ -4,7 +4,7 @@ import (
 	"flag"
 	"fmt"
 
-	"codeflow.dananglin.me.uk/apollo/indieauth-server/internal/server"
+	"codeflow.dananglin.me.uk/apollo/beacon/internal/server"
 )
 
 type Serve struct {
