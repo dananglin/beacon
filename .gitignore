@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2024 2024 Dan Anglin <d.n.i.anglin@gmail.com>
+#
+# SPDX-License-Identifier: CC0-1.0
+
 /__build/*
 !/__build/.gitkeep
 /.environment/*
