@@ -5,7 +5,6 @@ import (
 	"log/slog"
 	"net/http"
 	"strings"
-	"time"
 	"unicode/utf8"
 
 	"codeflow.dananglin.me.uk/apollo/beacon/internal/auth"
@@ -119,12 +118,8 @@ func (s *Server) setupAccount(writer http.ResponseWriter, request *http.Request)
 		return
 	}
 
-	timestamp := time.Now()
 	newProfile := database.Profile{
-		CreatedAt:      timestamp,
-		UpdatedAt:      timestamp,
 		HashedPassword: hashedPassword,
-		TokenVersion:   0,
 		Information: database.ProfileInformation{
 			Name:     form.Profile.DisplayName,
 			URL:      form.Profile.URL,
@@ -133,7 +128,7 @@ func (s *Server) setupAccount(writer http.ResponseWriter, request *http.Request)
 		},
 	}
 
-	if err := database.UpdateProfile(s.boltdb, form.ProfileID, newProfile); err != nil {
+	if err := database.CreateProfile(s.boltdb, form.ProfileID, newProfile); err != nil {
 		sendServerError(
 			writer,
 			fmt.Errorf("unable to create the profile in the database: %w", err),

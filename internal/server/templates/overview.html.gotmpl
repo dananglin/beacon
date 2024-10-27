@@ -1,0 +1,30 @@
+{{ define "overview" }}
+<!DOCTYPE html>
+<html lang="en">
+    <body>
+        <h1>Profile Overview</h1>
+        <p><b>Profile ID:</b> {{ .ProfileID }}<p>
+        <form action="/profile/overview" method="POST" novalidate>
+            <div>
+                <label>Profile display name:</label><br />
+                <input type="text" name="profileDisplayName" value="{{ .DisplayName }}"><br />
+            </div>
+            <div>
+                <label>Profile URL:</label><br />
+                <input type="url" name="profileURL" value="{{ .URL }}"><br />
+            </div>
+            <div>
+                <label>Profile email:</label><br />
+                <input type="email" name="profileEmail" value="{{ .Email }}"><br />
+            </div>
+            <div>
+                <label>Profile photo URL:</label><br />
+                <input type="url" name="profilePhotoURL" value="{{ .PhotoURL }}"><br />
+            </div>
+            <div>
+                <input type="submit" value="Update profile">
+            </div>
+        </form>
+    </body>
+</html>
+{{ end }}

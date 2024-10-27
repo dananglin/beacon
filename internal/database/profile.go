@@ -25,6 +25,14 @@ func (e ProfileNotExistError) Error() string {
 	return "the profile for '" + e.profileID + "' does not exist"
 }
 
+type ProfileAlreadyExistError struct {
+	profileID string
+}
+
+func (e ProfileAlreadyExistError) Error() string {
+	return "the profile for '" + e.profileID + "' is already present in the database"
+}
+
 type Profile struct {
 	CreatedAt      time.Time
 	UpdatedAt      time.Time
@@ -40,8 +48,45 @@ type ProfileInformation struct {
 	Email    string
 }
 
-// UpdateProfile updates a profile in the database.
-func UpdateProfile(boltdb *bolt.DB, profileID string, user Profile) error {
+// CreateProfile creates a new profile in the database.
+func CreateProfile(boltdb *bolt.DB, profileID string, profile Profile) error {
+	profileExists, err := ProfileExists(boltdb, profileID)
+	if err != nil {
+		return fmt.Errorf("unable to check if the profile already exists in the database: %w", err)
+	}
+
+	if profileExists {
+		return ProfileAlreadyExistError{profileID: profileID}
+	}
+
+	timestamp := time.Now()
+	profile.CreatedAt = timestamp
+	profile.UpdatedAt = timestamp
+
+	profile.TokenVersion = 0
+
+	return saveProfile(boltdb, profileID, profile)
+}
+
+// UpdateProfileInformation updates an existing profile's information.
+func UpdateProfileInformation(boltdb *bolt.DB, profileID string, newProfileInfo ProfileInformation) error {
+	profile, err := getProfile(boltdb, profileID)
+	if err != nil {
+		return fmt.Errorf("unable to get the profile from the database: %w", err)
+	}
+
+	timestamp := time.Now()
+	profile.Information = newProfileInfo
+	profile.UpdatedAt = timestamp
+
+	if err := saveProfile(boltdb, profileID, profile); err != nil {
+		return fmt.Errorf("unable to save the updated profile to the database: %w", err)
+	}
+
+	return nil
+}
+
+func saveProfile(boltdb *bolt.DB, profileID string, profile Profile) error {
 	bucketName := getBucketName()
 
 	err := boltdb.Update(func(tx *bolt.Tx) error {
@@ -54,7 +99,7 @@ func UpdateProfile(boltdb *bolt.DB, profileID string, user Profile) error {
 		key := []byte(profileID)
 
 		buffer := new(bytes.Buffer)
-		if err := gob.NewEncoder(buffer).Encode(user); err != nil {
+		if err := gob.NewEncoder(buffer).Encode(profile); err != nil {
 			return fmt.Errorf(
 				"unable to encode the user data: %w",
 				err,
@@ -104,8 +149,32 @@ func ProfileExists(boltdb *bolt.DB, profileID string) (bool, error) {
 	return profileExists, nil
 }
 
-// GetProfile returns the profile from a given website ID.
+// GetProfile returns the profile for a given profile ID.
 func GetProfile(boltdb *bolt.DB, profileID string) (Profile, error) {
+	return getProfile(boltdb, profileID)
+}
+
+// GetProfileInformation returns the profile information for a given profile ID.
+func GetProfileInformation(boltdb *bolt.DB, profileID string) (ProfileInformation, error) {
+	profile, err := getProfile(boltdb, profileID)
+	if err != nil {
+		return ProfileInformation{}, fmt.Errorf("error getting profile: %w", err)
+	}
+
+	return profile.Information, nil
+}
+
+// GetProfileTokenVersion returns the token version for a given profile ID.
+func GetProfileTokenVersion(boltdb *bolt.DB, profileID string) (int, error) {
+	profile, err := getProfile(boltdb, profileID)
+	if err != nil {
+		return 0, fmt.Errorf("error getting profile: %w", err)
+	}
+
+	return profile.TokenVersion, nil
+}
+
+func getProfile(boltdb *bolt.DB, profileID string) (Profile, error) {
 	bucketName := getBucketName()
 	key := []byte(profileID)
 

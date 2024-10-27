@@ -17,6 +17,7 @@ type Server struct {
 	boltdb     *bolt.DB
 	domainName string
 	jwtSecret  string
+	cookieName string
 }
 
 func NewServer(configPath string) (*Server, error) {
@@ -38,6 +39,7 @@ func NewServer(configPath string) (*Server, error) {
 		boltdb:     boltdb,
 		domainName: cfg.Domain,
 		jwtSecret:  cfg.JWT.Secret,
+		cookieName: "beacon_is_great",
 	}
 
 	server.setupRouter()
@@ -62,7 +64,8 @@ func (s *Server) setupRouter() {
 	mux.Handle("GET /.well-known/oauth-authorization-server", setRequestID(http.HandlerFunc(s.getMetadata)))
 	mux.Handle("GET /profile/login", setRequestID(http.HandlerFunc(s.getLoginForm)))
 	mux.Handle("POST /profile/login", setRequestID(http.HandlerFunc(s.authenticate)))
-	mux.Handle("GET /profile/login/confirmation", setRequestID(s.confirmation("Login successful.")))
+	mux.Handle("GET /profile/overview", setRequestID(s.protected(s.getOverviewPage)))
+	mux.Handle("POST /profile/overview", setRequestID(s.protected(s.updateProfileInformation)))
 	mux.Handle("GET /profile/setup", setRequestID(http.HandlerFunc(s.setup)))
 	mux.Handle("POST /profile/setup", setRequestID(http.HandlerFunc(s.setup)))
 

@@ -112,7 +112,7 @@ func (s *Server) authenticate(writer http.ResponseWriter, request *http.Request)
 	}
 
 	cookie := http.Cookie{
-		Name:     "beacon_is_great",
+		Name:     s.cookieName,
 		Value:    token,
 		Path:     "/",
 		MaxAge:   int(expiry.Seconds()),
@@ -125,7 +125,7 @@ func (s *Server) authenticate(writer http.ResponseWriter, request *http.Request)
 
 	http.SetCookie(writer, &cookie)
 
-	http.Redirect(writer, request, "/profile/login/confirmation", http.StatusSeeOther)
+	http.Redirect(writer, request, "/profile/overview", http.StatusSeeOther)
 }
 
 type formLogin struct {

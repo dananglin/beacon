@@ -26,6 +26,7 @@ const (
 	envBuildVerbose     = "BEACON_BUILD_VERBOSE"
 	envFailOnFormatting = "BEACON_FAIL_ON_FORMATTING"
 	envAppName          = "BEACON_APP_NAME"
+	envDockerImageName  = "BEACON_DOCKER_IMAGE_NAME"
 )
 
 var Default = Build
@@ -152,6 +153,24 @@ func Clean() error {
 
 	if err := sh.Run("go", "clean", "./..."); err != nil {
 		return err
+	}
+
+	return nil
+}
+
+// Docker builds the docker image.
+// Use BEACON_DOCKER_IMAGE_NAME to specify the docker image name.
+func Docker() error {
+	mg.Deps(Build)
+
+	imageName := os.Getenv(envDockerImageName)
+	if imageName == "" {
+		timestamp := time.Now().UTC().Unix()
+		imageName = fmt.Sprintf("localhost/%s:dev-%d", appName(), timestamp)
+	}
+
+	if err := sh.Run("docker", "build", "-t", imageName, "."); err != nil {
+		return fmt.Errorf("error building the docker image: %w", err)
 	}
 
 	return nil

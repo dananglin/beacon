@@ -5,4 +5,4 @@ ARG appName=beacon
 
 COPY ./__build/${appName} /usr/local/bin/${appName}
 
-ENTRYPOINT ["${appName}"]
+ENTRYPOINT ["beacon"]
