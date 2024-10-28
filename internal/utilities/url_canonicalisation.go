@@ -23,6 +23,7 @@ var (
 	ErrInvalidURLScheme    = errors.New("invalid URL scheme")
 	ErrURLContainsFragment = errors.New("the URL contains a fragment")
 	ErrURLContainsPort     = errors.New("the URL contains a port")
+	ErrURLContainsUserInfo = errors.New("the URL contains a username and/or a password")
 )
 
 // ValidateProfileURL validates the given profile URL according to the indieauth
@@ -59,6 +60,10 @@ func ValidateProfileURL(profileURL string) (string, error) {
 
 	if parsedProfileURL.Port() != "" {
 		return "", ErrURLContainsPort
+	}
+
+	if parsedProfileURL.User.String() != "" {
+		return "", ErrURLContainsUserInfo
 	}
 
 	if parsedProfileURL.Scheme == "" {

@@ -84,6 +84,11 @@ func TestValidateProfileURL(t *testing.T) {
 			url:       "https:///",
 			wantError: utilities.ErrMissingHostname,
 		},
+		{
+			name:      "URL with userinfo in it",
+			url:       "https://username:P@s$w0rD@example.org/",
+			wantError: utilities.ErrURLContainsUserInfo,
+		},
 	}
 
 	for _, errorCase := range slices.All(errorCases) {
