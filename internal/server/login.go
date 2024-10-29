@@ -15,12 +15,44 @@ import (
 	"codeflow.dananglin.me.uk/apollo/beacon/internal/utilities"
 )
 
-func (s *Server) getLoginForm(writer http.ResponseWriter, _ *http.Request) {
+const (
+	loginTypeProfile = "profile"
+)
+
+type formLogin struct {
+	AuthenticationFailure bool
+	ProfileID             string
+	Password              string
+	FieldErrors           map[string]string
+	LoginType             string
+}
+
+func (f *formLogin) validate() bool {
+	f.FieldErrors = make(map[string]string)
+
+	if strings.TrimSpace(f.ProfileID) == "" {
+		f.FieldErrors["ProfileID"] = "This field cannot be blank"
+	}
+
+	if strings.TrimSpace(f.Password) == "" {
+		f.FieldErrors["Password"] = "This field cannot be blank"
+	}
+
+	return len(f.FieldErrors) == 0
+}
+
+func (s *Server) getLoginForm(writer http.ResponseWriter, request *http.Request) {
+	loginType := request.URL.Query().Get("login_type")
+	if loginType == "" {
+		loginType = loginTypeProfile
+	}
+
 	form := formLogin{
 		AuthenticationFailure: false,
 		ProfileID:             "",
 		Password:              "",
 		FieldErrors:           make(map[string]string),
+		LoginType:             loginType,
 	}
 
 	generateAndSendHTMLResponse(
@@ -47,6 +79,7 @@ func (s *Server) authenticate(writer http.ResponseWriter, request *http.Request)
 		ProfileID:             request.PostFormValue("profileID"),
 		Password:              request.PostFormValue("password"),
 		FieldErrors:           make(map[string]string),
+		LoginType:             request.PostFormValue("loginType"),
 	}
 
 	if validForm := form.validate(); !validForm {
@@ -129,26 +162,18 @@ func (s *Server) authenticate(writer http.ResponseWriter, request *http.Request)
 
 	http.SetCookie(writer, &cookie)
 
-	http.Redirect(writer, request, "/profile/overview", http.StatusSeeOther)
-}
-
-type formLogin struct {
-	AuthenticationFailure bool
-	ProfileID             string
-	Password              string
-	FieldErrors           map[string]string
-}
-
-func (f *formLogin) validate() bool {
-	f.FieldErrors = make(map[string]string)
-
-	if strings.TrimSpace(f.ProfileID) == "" {
-		f.FieldErrors["ProfileID"] = "This field cannot be blank"
+	redirectMap := map[string]string{
+		loginTypeProfile: "/profile/overview",
 	}
 
-	if strings.TrimSpace(f.Password) == "" {
-		f.FieldErrors["Password"] = "This field cannot be blank"
+	redirect, ok := redirectMap[form.LoginType]
+	if !ok {
+		sendClientError(
+			writer,
+			http.StatusBadRequest,
+			fmt.Errorf("unrecognised login type: %s", form.LoginType),
+		)
 	}
 
-	return len(f.FieldErrors) == 0
+	http.Redirect(writer, request, redirect, http.StatusSeeOther)
 }
