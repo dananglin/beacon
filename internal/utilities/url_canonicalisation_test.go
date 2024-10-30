@@ -89,6 +89,16 @@ func TestValidateProfileURL(t *testing.T) {
 			url:       "https://username:P@s$w0rD@example.org/",
 			wantError: utilities.ErrURLContainsUserInfo,
 		},
+		{
+			name:      "URL with a single-dot path segment",
+			url:       "https://example.org/username/./barry",
+			wantError: utilities.ErrURLContainsDotPathSegment,
+		},
+		{
+			name:      "URL with a double-dot path segment",
+			url:       "https://example.org/username/../barry",
+			wantError: utilities.ErrURLContainsDotPathSegment,
+		},
 	}
 
 	for _, errorCase := range slices.All(errorCases) {

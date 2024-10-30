@@ -18,12 +18,13 @@ const (
 )
 
 var (
-	ErrMissingHostname     = errors.New("the hostname is missing from the URL")
-	ErrHostIsIPAddress     = errors.New("the hostname is an IP address")
-	ErrInvalidURLScheme    = errors.New("invalid URL scheme")
-	ErrURLContainsFragment = errors.New("the URL contains a fragment")
-	ErrURLContainsPort     = errors.New("the URL contains a port")
-	ErrURLContainsUserInfo = errors.New("the URL contains a username and/or a password")
+	ErrMissingHostname           = errors.New("the hostname is missing from the URL")
+	ErrHostIsIPAddress           = errors.New("the hostname is an IP address")
+	ErrInvalidURLScheme          = errors.New("invalid URL scheme")
+	ErrURLContainsFragment       = errors.New("the URL contains a fragment")
+	ErrURLContainsPort           = errors.New("the URL contains a port")
+	ErrURLContainsUserInfo       = errors.New("the URL contains a username and/or a password")
+	ErrURLContainsDotPathSegment = errors.New("the URL contains a single-dot or double-dot path segment")
 )
 
 // ValidateProfileURL validates the given profile URL according to the indieauth
@@ -64,6 +65,11 @@ func ValidateProfileURL(profileURL string) (string, error) {
 
 	if parsedProfileURL.User.String() != "" {
 		return "", ErrURLContainsUserInfo
+	}
+
+	dotPathPattern := regexp.MustCompile(`\/\.+\/`)
+	if dotPathPattern.MatchString(parsedProfileURL.Path) {
+		return "", ErrURLContainsDotPathSegment
 	}
 
 	if parsedProfileURL.Scheme == "" {
