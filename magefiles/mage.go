@@ -13,6 +13,7 @@ import (
 	"runtime"
 	"strings"
 	"time"
+	"unicode"
 
 	"github.com/magefile/mage/mg"
 	"github.com/magefile/mage/sh"
@@ -22,6 +23,7 @@ const (
 	projectName          = "beacon"
 	defaultAppName       = projectName
 	defaultInstallPrefix = "/usr/local"
+	defaultDockerfile    = "Dockerfile"
 
 	envInstallPrefix    = "BEACON_INSTALL_PREFIX"
 	envTestVerbose      = "BEACON_TEST_VERBOSE"
@@ -31,6 +33,7 @@ const (
 	envFailOnFormatting = "BEACON_FAIL_ON_FORMATTING"
 	envAppName          = "BEACON_APP_NAME"
 	envDockerImageName  = "BEACON_DOCKER_IMAGE_NAME"
+	envDockerfile       = "BEACON_DOCKERFILE"
 )
 
 var Default = Build
@@ -90,7 +93,7 @@ func Gofmt() error {
 	}
 
 	if len(output) != 0 {
-		return fmt.Errorf("The following files needed to be formatted: %s", formattedFiles)
+		return fmt.Errorf("The following files needs to be formatted: %s", formattedFiles)
 	}
 
 	return nil
@@ -173,7 +176,7 @@ func Docker() error {
 		imageName = fmt.Sprintf("localhost/%s:dev-%d", appName(), timestamp)
 	}
 
-	if err := sh.Run("docker", "build", "-t", imageName, "."); err != nil {
+	if err := sh.Run("docker", "build", "-t", imageName, "-f", dockerfile(), "."); err != nil {
 		return fmt.Errorf("error building the docker image: %w", err)
 	}
 
@@ -183,15 +186,16 @@ func Docker() error {
 // ldflags returns the build flags.
 func ldflags() string {
 	var (
-		infoPackage        = "codeflow.dananglin.me.uk/apollo/beacon/internal/info"
-		binaryVersionVar   = infoPackage + "." + "BinaryVersion"
-		gitCommitVar       = infoPackage + "." + "GitCommit"
-		goVersionVar       = infoPackage + "." + "GoVersion"
-		buildTimeVar       = infoPackage + "." + "BuildTime"
-		applicationNameVar = infoPackage + "." + "ApplicationName"
+		infoPackage              = "codeflow.dananglin.me.uk/apollo/beacon/internal/info"
+		binaryVersionVar         = infoPackage + "." + "BinaryVersion"
+		gitCommitVar             = infoPackage + "." + "GitCommit"
+		goVersionVar             = infoPackage + "." + "GoVersion"
+		buildTimeVar             = infoPackage + "." + "BuildTime"
+		applicationNameVar       = infoPackage + "." + "ApplicationName"
+		applicationTitledNameVar = infoPackage + "." + "ApplicationTitledName"
 
 		buildTime  = time.Now().UTC().Format(time.RFC3339)
-		ldflagsfmt = "-s -w -X %s=%s -X %s=%s -X %s=%s -X %s=%s -X %s=%s"
+		ldflagsfmt = "-s -w -X %s=%s -X %s=%s -X %s=%s -X %s=%s -X %s=%s -X %s=%s"
 	)
 
 	return fmt.Sprintf(
@@ -201,6 +205,7 @@ func ldflags() string {
 		goVersionVar, runtime.Version(),
 		buildTimeVar, buildTime,
 		applicationNameVar, appName(),
+		applicationTitledNameVar, appTitledName(),
 	)
 }
 
@@ -235,4 +240,21 @@ func appName() string {
 	}
 
 	return appName
+}
+
+func appTitledName() string {
+	runes := []rune(appName())
+	runes[0] = unicode.ToUpper(runes[0])
+
+	return string(runes)
+}
+
+func dockerfile() string {
+	dockerfile := os.Getenv(envDockerfile)
+
+	if dockerfile == "" {
+		return defaultDockerfile
+	}
+
+	return dockerfile
 }

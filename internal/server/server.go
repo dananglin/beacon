@@ -17,11 +17,14 @@ import (
 )
 
 type Server struct {
-	httpServer *http.Server
-	boltdb     *bolt.DB
-	domainName string
-	jwtSecret  string
-	cookieName string
+	httpServer          *http.Server
+	boltdb              *bolt.DB
+	domainName          string
+	jwtSecret           string
+	jwtCookieName       string
+	indieauthCookieName string
+	indieauthEndpoint   string
+	tokenEndpoint       string
 }
 
 func NewServer(configPath string) (*Server, error) {
@@ -40,10 +43,13 @@ func NewServer(configPath string) (*Server, error) {
 			Addr:              fmt.Sprintf("%s:%d", cfg.BindAddress, cfg.Port),
 			ReadHeaderTimeout: 1 * time.Second,
 		},
-		boltdb:     boltdb,
-		domainName: cfg.Domain,
-		jwtSecret:  cfg.JWT.Secret,
-		cookieName: "beacon_is_great",
+		boltdb:              boltdb,
+		domainName:          cfg.Domain,
+		jwtSecret:           cfg.JWT.Secret,
+		jwtCookieName:       "beacon_is_great",
+		indieauthEndpoint:   "/indieauth/authorize",
+		indieauthCookieName: "indieauth_is_great",
+		tokenEndpoint:       "/indieauth/token",
 	}
 
 	server.setupRouter()
@@ -68,10 +74,11 @@ func (s *Server) setupRouter() {
 	mux.Handle("GET /.well-known/oauth-authorization-server", setRequestID(http.HandlerFunc(s.getMetadata)))
 	mux.Handle("GET /profile/login", setRequestID(http.HandlerFunc(s.getLoginForm)))
 	mux.Handle("POST /profile/login", setRequestID(http.HandlerFunc(s.authenticate)))
-	mux.Handle("GET /profile/overview", setRequestID(s.protected(s.getOverviewPage)))
-	mux.Handle("POST /profile/overview", setRequestID(s.protected(s.updateProfileInformation)))
+	mux.Handle("GET /profile/overview", setRequestID(s.protected(s.getOverviewPage, s.profileRedirectToLogin)))
+	mux.Handle("POST /profile/overview", setRequestID(s.protected(s.updateProfileInformation, s.profileRedirectToLogin)))
 	mux.Handle("GET /profile/setup", setRequestID(http.HandlerFunc(s.setup)))
 	mux.Handle("POST /profile/setup", setRequestID(http.HandlerFunc(s.setup)))
+	mux.Handle("GET "+s.indieauthEndpoint, setRequestID(s.protected(s.authorize, s.authorizeRedirectToLogin)))
 
 	s.httpServer.Handler = mux
 }

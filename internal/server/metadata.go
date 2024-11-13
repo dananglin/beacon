@@ -18,8 +18,8 @@ func (s *Server) getMetadata(writer http.ResponseWriter, _ *http.Request) {
 		CodeChallengeMethodsSupported []string `json:"code_challenge_methods_supported"`
 	}{
 		Issuer:                        fmt.Sprintf("https://%s/", s.domainName),
-		AuthorizationEndpoint:         fmt.Sprintf("https://%s/auth", s.domainName),
-		TokenEndpoint:                 fmt.Sprintf("https://%s/token", s.domainName),
+		AuthorizationEndpoint:         fmt.Sprintf("https://%s%s", s.domainName, s.indieauthEndpoint),
+		TokenEndpoint:                 fmt.Sprintf("https://%s%s", s.domainName, s.tokenEndpoint),
 		ServiceDocumentation:          "https://indieauth.spec.indieweb.org",
 		CodeChallengeMethodsSupported: []string{"S256"},
 	}

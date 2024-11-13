@@ -21,7 +21,7 @@ func testProfile(boltdb *bolt.DB, testName string) func(t *testing.T) {
 
 		website := "https://billjones.example.net"
 
-		profileID, err := utilities.ValidateProfileURL(website)
+		profileID, err := utilities.ValidateAndCanonicalizeURL(website)
 		if err != nil {
 			t.Fatalf(
 				"FAILED test %s: Received an error validating the profile URL: %v",

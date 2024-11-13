@@ -13,24 +13,35 @@ import (
 	"codeflow.dananglin.me.uk/apollo/beacon/internal/database"
 )
 
-func (s *Server) protected(handler func(writer http.ResponseWriter, request *http.Request, profileID string)) http.Handler {
+func (s *Server) protected(
+	next func(writer http.ResponseWriter, request *http.Request, profileID string),
+	redirectToLogin func(writer http.ResponseWriter, request *http.Request),
+) http.Handler {
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
-		cookie, err := request.Cookie(s.cookieName)
+		cookie, err := request.Cookie(s.jwtCookieName)
 		if err != nil {
 			if errors.Is(err, http.ErrNoCookie) {
-				sendClientError(
-					writer,
-					http.StatusBadRequest,
-					err,
-				)
+				if redirectToLogin != nil {
+					redirectToLogin(writer, request)
+
+					return
+				} else {
+					sendClientError(
+						writer,
+						http.StatusUnauthorized,
+						err,
+					)
+
+					return
+				}
 			} else {
 				sendServerError(
 					writer,
 					fmt.Errorf("error getting cookie: %w", err),
 				)
-			}
 
-			return
+				return
+			}
 		}
 
 		token := cookie.Value
@@ -42,6 +53,8 @@ func (s *Server) protected(handler func(writer http.ResponseWriter, request *htt
 				http.StatusUnauthorized,
 				fmt.Errorf("token validation error: %w", err),
 			)
+
+			return
 		}
 
 		profileTokenVersion, err := database.GetProfileTokenVersion(s.boltdb, data.ProfileID)
@@ -79,6 +92,6 @@ func (s *Server) protected(handler func(writer http.ResponseWriter, request *htt
 		// are not stored in the browser's cache.
 		writer.Header().Add("Cache-Control", "no-store")
 
-		handler(writer, request, data.ProfileID)
+		next(writer, request, data.ProfileID)
 	})
 }

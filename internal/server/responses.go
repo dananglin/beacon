@@ -39,7 +39,7 @@ func generateAndSendHTMLResponse(writer http.ResponseWriter, templateName string
 		return
 	}
 
-	writer.Header().Set("Content-Type", "text/html")
+	writer.Header().Set("Content-Type", "text/html; charset=UTF-8")
 	writer.WriteHeader(statusCode)
 
 	if err := tmpl.Execute(writer, data); err != nil {

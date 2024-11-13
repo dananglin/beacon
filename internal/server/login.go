@@ -16,7 +16,8 @@ import (
 )
 
 const (
-	loginTypeProfile = "profile"
+	loginTypeProfile   = "profile"
+	loginTypeIndieauth = "indieauth"
 )
 
 type formLogin struct {
@@ -47,9 +48,11 @@ func (s *Server) getLoginForm(writer http.ResponseWriter, request *http.Request)
 		loginType = loginTypeProfile
 	}
 
+	profileID := request.URL.Query().Get("profile_id")
+
 	form := formLogin{
 		AuthenticationFailure: false,
-		ProfileID:             "",
+		ProfileID:             profileID,
 		Password:              "",
 		FieldErrors:           make(map[string]string),
 		LoginType:             loginType,
@@ -93,7 +96,7 @@ func (s *Server) authenticate(writer http.ResponseWriter, request *http.Request)
 		return
 	}
 
-	profileID, err := utilities.ValidateProfileURL(form.ProfileID)
+	profileID, err := utilities.ValidateAndCanonicalizeURL(form.ProfileID)
 	if err != nil {
 		form.AuthenticationFailure = true
 
@@ -149,7 +152,7 @@ func (s *Server) authenticate(writer http.ResponseWriter, request *http.Request)
 	}
 
 	cookie := http.Cookie{
-		Name:     s.cookieName,
+		Name:     s.jwtCookieName,
 		Value:    token,
 		Path:     "/",
 		MaxAge:   int(expiry.Seconds()),
@@ -163,10 +166,11 @@ func (s *Server) authenticate(writer http.ResponseWriter, request *http.Request)
 	http.SetCookie(writer, &cookie)
 
 	redirectMap := map[string]string{
-		loginTypeProfile: "/profile/overview",
+		loginTypeProfile:   "/profile/overview",
+		loginTypeIndieauth: s.indieauthEndpoint,
 	}
 
-	redirect, ok := redirectMap[form.LoginType]
+	redirectURL, ok := redirectMap[form.LoginType]
 	if !ok {
 		sendClientError(
 			writer,
@@ -175,5 +179,5 @@ func (s *Server) authenticate(writer http.ResponseWriter, request *http.Request)
 		)
 	}
 
-	http.Redirect(writer, request, redirect, http.StatusSeeOther)
+	http.Redirect(writer, request, redirectURL, http.StatusSeeOther)
 }

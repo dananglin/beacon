@@ -1,0 +1,23 @@
+<!--
+     SPDX-FileCopyrightText: 2024 Dan Anglin <d.n.i.anglin@gmail.com>
+     SPDX-License-Identifier: AGPL-3.0-only
+-->
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <title>Test Webpage</title>
+        <link rel="redirect_uri" href="/redirect">
+        <link rel="redirect_uri" href="https://redirect.website.net/">
+    </head>
+
+    <body>
+      <header>
+        <div class="h-app">
+          <img src="assets/logo.png" class="u-logo">
+          <a href="/" class="u-url p-name">Test Website</a>
+        </div>
+      </header>
+      <h1>Test Webpage</h1>
+      <p>A simple paragraph</p>
+    </body>
+</html>

@@ -12,7 +12,7 @@ import (
 	"codeflow.dananglin.me.uk/apollo/beacon/internal/utilities"
 )
 
-func TestValidateProfileURL(t *testing.T) {
+func TestValidateAndCanonicalizeURL(t *testing.T) {
 	testCases := []struct {
 		name string
 		url  string
@@ -45,8 +45,8 @@ func TestValidateProfileURL(t *testing.T) {
 		},
 	}
 
-	for _, testCase := range slices.All(testCases) {
-		t.Run(testCase.name, testValidProfileURLs(testCase.name, testCase.url, testCase.want))
+	for _, tc := range slices.All(testCases) {
+		t.Run(tc.name, testValidProfileURLs(tc.name, tc.url, tc.want))
 	}
 
 	errorCases := []struct {
@@ -101,14 +101,14 @@ func TestValidateProfileURL(t *testing.T) {
 		},
 	}
 
-	for _, errorCase := range slices.All(errorCases) {
-		t.Run(errorCase.name, testInvalidProfileURL(errorCase.name, errorCase.url, errorCase.wantError))
+	for _, ec := range slices.All(errorCases) {
+		t.Run(ec.name, testInvalidProfileURL(ec.name, ec.url, ec.wantError))
 	}
 }
 
 func testValidProfileURLs(testName, url, wantURL string) func(t *testing.T) {
 	return func(t *testing.T) {
-		canonicalisedURL, err := utilities.ValidateProfileURL(url)
+		canonicalisedURL, err := utilities.ValidateAndCanonicalizeURL(url)
 		if err != nil {
 			t.Fatalf("FAILED test %q: %v", testName, err)
 		}
@@ -123,9 +123,9 @@ func testValidProfileURLs(testName, url, wantURL string) func(t *testing.T) {
 
 func testInvalidProfileURL(testName, url string, wantError error) func(t *testing.T) {
 	return func(t *testing.T) {
-		if _, err := utilities.ValidateProfileURL(url); err == nil {
+		if _, err := utilities.ValidateAndCanonicalizeURL(url); err == nil {
 			t.Errorf(
-				"FAILED test %q: The expected error was not received using invalid profile URL %q",
+				"FAILED test %q: No error was received using invalid profile URL %q",
 				testName,
 				url,
 			)
@@ -139,12 +139,49 @@ func testInvalidProfileURL(testName, url string, wantError error) func(t *testin
 				)
 			} else {
 				t.Logf(
-					"PASSED test %q: Expected error received using profile URL %q: got %q",
-					testName,
+					"Expected error received using profile URL %q: got %q",
 					url,
 					err.Error(),
 				)
 			}
+		}
+	}
+}
+
+func TestValidateClientURL(t *testing.T) {
+	testCases := []struct {
+		name string
+		url  string
+	}{
+		{
+			name: "Canonicalized client URL",
+			url:  "https://app.example.party/",
+		},
+		{
+			name: "Canonicalized client URL with port",
+			url:  "https://app.example.party:8443/",
+		},
+	}
+
+	for _, tc := range slices.All(testCases) {
+		t.Run(tc.name, testValidClientURL(tc.name, tc.url))
+	}
+}
+
+func testValidClientURL(testName, url string) func(t *testing.T) {
+	return func(t *testing.T) {
+		if err := utilities.ValidateClientURL(url); err != nil {
+			t.Fatalf(
+				"FAILED test %s: unexpected error received after validating %s: %v",
+				testName,
+				url,
+				err,
+			)
+		} else {
+			t.Logf(
+				"Successfully validated the client URL: %s",
+				url,
+			)
 		}
 	}
 }

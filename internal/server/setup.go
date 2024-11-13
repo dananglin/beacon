@@ -170,7 +170,7 @@ type formProfileInfo struct {
 func (f *formProfile) validate() bool {
 	f.FieldErrors = make(map[string]string)
 
-	canonicalisedWebsite, err := utilities.ValidateProfileURL(strings.TrimSpace(f.ProfileID))
+	canonicalisedWebsite, err := utilities.ValidateAndCanonicalizeURL(strings.TrimSpace(f.ProfileID))
 	if err != nil {
 		slog.Error("profile website validation failed", "error", err.Error())
 

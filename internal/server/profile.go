@@ -75,3 +75,9 @@ func (s *Server) updateProfileInformation(writer http.ResponseWriter, request *h
 
 	http.Redirect(writer, request, "/profile/overview", http.StatusSeeOther)
 }
+
+func (s *Server) profileRedirectToLogin(writer http.ResponseWriter, request *http.Request) {
+	redirectURL := "/profile/login?login_type=" + loginTypeProfile
+
+	http.Redirect(writer, request, redirectURL, http.StatusSeeOther)
+}
