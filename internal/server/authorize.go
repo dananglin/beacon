@@ -29,43 +29,12 @@ func (e MismatchedProfileIDError) Error() string {
 		")"
 }
 
-type authorizeRequest struct {
-	ClientID            string
-	CodeChallenge       string
-	CodeChallengeMethod string
-	Me                  string
-	RedirectURI         string
-	ResponseType        string
-	Scope               []string
-	State               string
-}
-
 func (s *Server) authorize(writer http.ResponseWriter, request *http.Request, profileID string) {
-	cookie, err := request.Cookie(s.indieauthCookieName)
+	authReq, err := newClientAuthRequest(s.indieauthCookieName, request)
 	if err != nil {
-		if errors.Is(err, http.ErrNoCookie) {
-			sendClientError(
-				writer,
-				http.StatusUnauthorized,
-				err,
-			)
-
-			return
-		}
-
 		sendServerError(
 			writer,
-			fmt.Errorf("error getting cookie: %w", err),
-		)
-
-		return
-	}
-
-	var authReq authorizeRequest
-	if err := utilities.GobDecode(cookie.Value, &authReq); err != nil {
-		sendServerError(
-			writer,
-			fmt.Errorf("error decoding the client's authorize request from cookie: %w", err),
+			fmt.Errorf("error getting the client's authorization request: %w", err),
 		)
 
 		return
@@ -137,18 +106,7 @@ func (s *Server) authorize(writer http.ResponseWriter, request *http.Request, pr
 
 func (s *Server) authorizeRedirectToLogin(writer http.ResponseWriter, request *http.Request) {
 	profileID := request.URL.Query().Get("me")
-	scope := strings.Split(request.URL.Query().Get("scope"), " ")
-
-	authRequest := authorizeRequest{
-		ClientID:            request.URL.Query().Get("client_id"),
-		CodeChallenge:       request.URL.Query().Get("code_challenge"),
-		CodeChallengeMethod: request.URL.Query().Get("code_challenge_method"),
-		Me:                  profileID,
-		RedirectURI:         request.URL.Query().Get("redirect_uri"),
-		ResponseType:        request.URL.Query().Get("response_type"),
-		Scope:               scope,
-		State:               request.URL.Query().Get("state"),
-	}
+	authRequest := newClientAuthRequestFromQuery(request.URL.Query())
 
 	encodedString, err := utilities.GobEncode(authRequest)
 	if err != nil {
@@ -181,4 +139,51 @@ func (s *Server) authorizeRedirectToLogin(writer http.ResponseWriter, request *h
 	)
 
 	http.Redirect(writer, request, redirectURL, http.StatusSeeOther)
+}
+
+type clientAuthRequest struct {
+	ClientID            string
+	CodeChallenge       string
+	CodeChallengeMethod string
+	Me                  string
+	RedirectURI         string
+	ResponseType        string
+	Scope               []string
+	State               string
+}
+
+func newClientAuthRequest(cookieName string, request *http.Request) (clientAuthRequest, error) {
+	cookie, err := request.Cookie(cookieName)
+	if err != nil {
+		if errors.Is(err, http.ErrNoCookie) {
+			return newClientAuthRequestFromQuery(request.URL.Query()), nil
+		}
+
+		return clientAuthRequest{}, fmt.Errorf("unable to retrieve the cookie: %w", err)
+	}
+
+	var authReq clientAuthRequest
+	if err := utilities.GobDecode(cookie.Value, &authReq); err != nil {
+		return clientAuthRequest{}, fmt.Errorf(
+			"error decoding the client's authorize request from cookie: %w",
+			err,
+		)
+	}
+
+	return authReq, nil
+}
+
+func newClientAuthRequestFromQuery(queryValues url.Values) clientAuthRequest {
+	request := clientAuthRequest{
+		ClientID:            queryValues.Get("client_id"),
+		CodeChallenge:       queryValues.Get("code_challenge"),
+		CodeChallengeMethod: queryValues.Get("code_challenge_method"),
+		Me:                  queryValues.Get("me"),
+		RedirectURI:         queryValues.Get("redirect_uri"),
+		ResponseType:        queryValues.Get("response_type"),
+		Scope:               strings.Split(queryValues.Get("scope"), " "),
+		State:               queryValues.Get("state"),
+	}
+
+	return request
 }
