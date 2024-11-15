@@ -167,7 +167,7 @@ func (s *Server) authenticate(writer http.ResponseWriter, request *http.Request)
 
 	redirectMap := map[string]string{
 		loginTypeProfile:   "/profile/overview",
-		loginTypeIndieauth: s.indieauthEndpoint,
+		loginTypeIndieauth: s.authPath,
 	}
 
 	redirectURL, ok := redirectMap[form.LoginType]

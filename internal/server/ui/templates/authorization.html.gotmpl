@@ -1,0 +1,38 @@
+{{/*
+     SPDX-FileCopyrightText: 2024 Dan Anglin <d.n.i.anglin@gmail.com>
+     SPDX-License-Identifier: AGPL-3.0-only
+*/}}
+{{ define "authorization" }}
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>Beacon | Authorization</title>
+        <script src="/static/htmx/htmx.min.js"></script>
+    </head>
+
+    <body>
+        <h1>Sign in to {{ .ClientID }}</h1>
+
+        <p><a href="{{ .ClientURI }}">{{ .ClientName }}</a> is requesting that you sign in to their app as <b>{{ .ProfileID }}</b></p>
+	{{ if gt (len .Scopes) 0 }}
+	<p>The following scopes are included in this request:</p>
+	<ul>
+	    {{ range $scope := .Scopes }}
+	    <li>{{ $scope }}</li>
+	    {{ end }}
+	</ul>
+	{{ end }}
+        <p>Select <b>Accept</b> to sign in, or <b>Reject</b> to reject the request.</p>
+        <p>You will be redirected to {{ .ClientRedirectURI }}</p>
+
+        <button hx-post="{{ .AcceptURI }}" hx-trigger="click" hx-swap="none">
+            Accept
+        </button>
+
+        <button hx-post="{{ .RejectURI }}" hx-trigger="click" hx-swap="none">
+            Reject
+        </button>
+    </body>
+</html>
+{{ end }}

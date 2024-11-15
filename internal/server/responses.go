@@ -29,7 +29,7 @@ func sendJSONResponse(writer http.ResponseWriter, statusCode int, payload any) {
 }
 
 func generateAndSendHTMLResponse(writer http.ResponseWriter, templateName string, statusCode int, data any) {
-	tmpl, err := template.New(templateName).ParseFS(templates, "templates/*")
+	tmpl, err := template.New(templateName).ParseFS(templatesFS, templatesFSDir+"/*")
 	if err != nil {
 		sendServerError(
 			writer,

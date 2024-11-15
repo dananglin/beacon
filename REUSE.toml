@@ -1,0 +1,14 @@
+# SPDX-FileCopyrightText: 2024 Dan Anglin <d.n.i.anglin@gmail.com>
+#
+# SPDX-License-Identifier: CC0-1.0
+
+version                      = 1
+SPDX-PackageName             = "beacon"
+SPDX-PackageSupplier         = "Dan Anglin <d.n.i.anglin@gmail.com>"
+SPDX-PackageDownloadLocation = "https://codeflow.dananglin.me.uk/apollo/beacon"
+
+[[annotations]]
+path = ["internal/server/ui/static/htmx/htmx.min.js"]
+precedence              = "override"
+SPDX-FileCopyrightText  = "NONE"
+SPDX-License-Identifier = "0BSD"

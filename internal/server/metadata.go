@@ -5,7 +5,6 @@
 package server
 
 import (
-	"fmt"
 	"net/http"
 )
 
@@ -17,9 +16,9 @@ func (s *Server) getMetadata(writer http.ResponseWriter, _ *http.Request) {
 		ServiceDocumentation          string   `json:"service_documentation"`
 		CodeChallengeMethodsSupported []string `json:"code_challenge_methods_supported"`
 	}{
-		Issuer:                        fmt.Sprintf("https://%s/", s.domainName),
-		AuthorizationEndpoint:         fmt.Sprintf("https://%s%s", s.domainName, s.indieauthEndpoint),
-		TokenEndpoint:                 fmt.Sprintf("https://%s%s", s.domainName, s.tokenEndpoint),
+		Issuer:                        s.issuer,
+		AuthorizationEndpoint:         s.authEndpoint,
+		TokenEndpoint:                 s.tokenEndpoint,
 		ServiceDocumentation:          "https://indieauth.spec.indieweb.org",
 		CodeChallengeMethodsSupported: []string{"S256"},
 	}

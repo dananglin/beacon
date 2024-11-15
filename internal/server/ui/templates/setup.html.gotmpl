@@ -1,0 +1,52 @@
+{{/*
+     SPDX-FileCopyrightText: 2024 Dan Anglin <d.n.i.anglin@gmail.com>
+     SPDX-License-Identifier: AGPL-3.0-only
+*/}}
+{{ define "setup" }}
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>Setup Beacon</title>
+    </head>
+
+    <body>
+        <h1>Set up your profile</h1>
+        <form action="/profile/setup" method="POST" novalidate>
+            <div>
+                <label>Profile ID (required):</label><br />
+                {{ with .FieldErrors.ProfileID }}
+                    <label class="error">{{ . }}</label><br />
+                {{ end }}
+                <input type="text" name="profileID" value="{{ .ProfileID }}"><br />
+            </div>
+            <div>
+                <label>Password (required):</label><br />
+                {{ with .FieldErrors.Password }}
+                    <label class="error">{{ . }}</label><br />
+                {{ end }}
+                <input type="password" name="password"><br />
+            </div>
+            <div>
+                <label>Profile display name:</label><br />
+                <input type="text" name="profileDisplayName" value="{{ .Profile.DisplayName }}"><br />
+            </div>
+            <div>
+                <label>Profile URL:</label><br />
+                <input type="text" name="profileURL" value="{{ .Profile.URL }}"><br />
+            </div>
+            <div>
+                <label>Profile email:</label><br />
+                <input type="email" name="profileEmail" value="{{ .Profile.Email }}"><br />
+            </div>
+            <div>
+                <label>Profile photo URL:</label><br />
+                <input type="text" name="profilePhotoURL" value="{{ .Profile.PhotoURL }}"><br />
+            </div>
+            <div>
+                <input type="submit" value="Create account">
+            </div>
+        </form>
+    </body>
+</html>
+{{ end }}

@@ -5,6 +5,10 @@
 package server
 
 import (
+	"bytes"
+	"crypto/rand"
+	"encoding/gob"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"net/http"
@@ -27,6 +31,14 @@ func (e MismatchedProfileIDError) Error() string {
 		") does not match the profile ID in the authorize request (" +
 		e.profileIDInRequest +
 		")"
+}
+
+type MissingQueryValueError struct {
+	parameter string
+}
+
+func (e MissingQueryValueError) Error() string {
+	return "the value for '" + e.parameter + "' is missing from the URL's query"
 }
 
 func (s *Server) authorize(writer http.ResponseWriter, request *http.Request, profileID string) {
@@ -101,14 +113,47 @@ func (s *Server) authorize(writer http.ResponseWriter, request *http.Request, pr
 		return
 	}
 
-	fmt.Fprintln(writer, "Good checkpoint reached! :)")
+	clientRequest := struct {
+		ClientID          string
+		ClientName        string
+		ClientURI         string
+		ClientRedirectURI string
+		ProfileID         string
+		AcceptURI         string
+		RejectURI         string
+		Scopes            []string
+	}{
+		ClientID:          clientMetadata.ClientID,
+		ClientName:        clientMetadata.ClientName,
+		ClientURI:         clientMetadata.ClientURI,
+		ProfileID:         profileID,
+		ClientRedirectURI: authReq.RedirectURI,
+		AcceptURI:         s.authPath + "/accept",
+		RejectURI:         s.authPath + "/reject",
+		Scopes:            authReq.Scope,
+	}
+
+	generateAndSendHTMLResponse(
+		writer,
+		"authorization",
+		http.StatusOK,
+		clientRequest,
+	)
 }
 
 func (s *Server) authorizeRedirectToLogin(writer http.ResponseWriter, request *http.Request) {
 	profileID := request.URL.Query().Get("me")
-	authRequest := newClientAuthRequestFromQuery(request.URL.Query())
 
-	encodedString, err := utilities.GobEncode(authRequest)
+	authRequest, err := newClientAuthRequestFromQuery(request.URL.Query())
+	if err != nil {
+		sendClientError(
+			writer,
+			http.StatusBadRequest,
+			fmt.Errorf("error creating the client authorization request from query: %w", err),
+		)
+	}
+
+	encodedAuthRequest, err := utilities.GobEncode(authRequest)
 	if err != nil {
 		sendServerError(
 			writer,
@@ -120,8 +165,8 @@ func (s *Server) authorizeRedirectToLogin(writer http.ResponseWriter, request *h
 
 	cookie := http.Cookie{
 		Name:     s.indieauthCookieName,
-		Value:    encodedString,
-		Path:     s.indieauthEndpoint,
+		Value:    encodedAuthRequest,
+		Path:     "/",
 		MaxAge:   int(expiry.Seconds()),
 		Quoted:   false,
 		Domain:   s.domainName,
@@ -141,6 +186,95 @@ func (s *Server) authorizeRedirectToLogin(writer http.ResponseWriter, request *h
 	http.Redirect(writer, request, redirectURL, http.StatusSeeOther)
 }
 
+type authResponse struct {
+	ClientID            string
+	CodeChallenge       string
+	CodeChallengeMethod string
+	RedirectURI         string
+	Me                  string
+}
+
+func (s *Server) authorizeAccept(writer http.ResponseWriter, request *http.Request, profileID string) {
+	authReq, err := newClientAuthRequest(s.indieauthCookieName, request)
+	if err != nil {
+		sendClientError(
+			writer,
+			http.StatusUnauthorized,
+			fmt.Errorf("error getting the client's authorization request: %w", err),
+		)
+
+		return
+	}
+
+	// Create the authorization code
+	authCodeBytes := make([]byte, 32)
+
+	if _, err := rand.Read(authCodeBytes); err != nil {
+		sendServerError(
+			writer,
+			fmt.Errorf("unable to create random bytes: %w", err),
+		)
+	}
+
+	authCode := hex.EncodeToString(authCodeBytes)
+
+	// Data associated with the authorization code
+	authResp := authResponse{
+		ClientID:            authReq.ClientID,
+		CodeChallenge:       authReq.CodeChallenge,
+		CodeChallengeMethod: authReq.CodeChallengeMethod,
+		RedirectURI:         authReq.RedirectURI,
+		Me:                  profileID,
+	}
+
+	buffer := new(bytes.Buffer)
+	if err := gob.NewEncoder(buffer).Encode(authResp); err != nil {
+		sendServerError(
+			writer,
+			fmt.Errorf("unable to encode the data: %w", err),
+		)
+	}
+
+	// Save code and associated data to the server's cache
+	s.cache.Add(
+		authCode,
+		buffer.Bytes(),
+		time.Now().Add(1*time.Minute),
+	)
+
+	// Construct the authorization response and set it to the header below.
+	redirectURL := fmt.Sprintf(
+		"%s?code=%s&state=%s&iss=%s",
+		authReq.RedirectURI,
+		url.QueryEscape(authCode),
+		url.QueryEscape(authReq.State),
+		url.QueryEscape(s.issuer),
+	)
+
+	writer.Header().Add("HX-Redirect", redirectURL)
+}
+
+func (s *Server) authorizeReject(writer http.ResponseWriter, request *http.Request, _ string) {
+	authReq, err := newClientAuthRequest(s.indieauthCookieName, request)
+	if err != nil {
+		sendClientError(
+			writer,
+			http.StatusUnauthorized,
+			fmt.Errorf("error getting the client's authorization request: %w", err),
+		)
+
+		return
+	}
+
+	redirectURL := fmt.Sprintf(
+		"%s?error=access_denied&state=%s",
+		authReq.RedirectURI,
+		url.QueryEscape(authReq.State),
+	)
+
+	writer.Header().Add("HX-Redirect", redirectURL)
+}
+
 type clientAuthRequest struct {
 	ClientID            string
 	CodeChallenge       string
@@ -156,7 +290,15 @@ func newClientAuthRequest(cookieName string, request *http.Request) (clientAuthR
 	cookie, err := request.Cookie(cookieName)
 	if err != nil {
 		if errors.Is(err, http.ErrNoCookie) {
-			return newClientAuthRequestFromQuery(request.URL.Query()), nil
+			authReq, err := newClientAuthRequestFromQuery(request.URL.Query())
+			if err != nil {
+				return clientAuthRequest{}, fmt.Errorf(
+					"unable to create the client authorization request: %w",
+					err,
+				)
+			}
+
+			return authReq, nil
 		}
 
 		return clientAuthRequest{}, fmt.Errorf("unable to retrieve the cookie: %w", err)
@@ -173,17 +315,45 @@ func newClientAuthRequest(cookieName string, request *http.Request) (clientAuthR
 	return authReq, nil
 }
 
-func newClientAuthRequestFromQuery(queryValues url.Values) clientAuthRequest {
-	request := clientAuthRequest{
-		ClientID:            queryValues.Get("client_id"),
-		CodeChallenge:       queryValues.Get("code_challenge"),
-		CodeChallengeMethod: queryValues.Get("code_challenge_method"),
-		Me:                  queryValues.Get("me"),
-		RedirectURI:         queryValues.Get("redirect_uri"),
-		ResponseType:        queryValues.Get("response_type"),
-		Scope:               strings.Split(queryValues.Get("scope"), " "),
-		State:               queryValues.Get("state"),
+func newClientAuthRequestFromQuery(queryValues url.Values) (clientAuthRequest, error) {
+	const (
+		clientID            = "client_id"
+		codeChallenge       = "code_challenge"
+		codeChallengeMethod = "code_challenge_method"
+		me                  = "me"
+		redirectURI         = "redirect_uri"
+		responseType        = "response_type"
+		scope               = "scope"
+		state               = "state"
+	)
+
+	params := []string{
+		clientID,
+		codeChallenge,
+		codeChallengeMethod,
+		me,
+		redirectURI,
+		responseType,
+		scope,
+		state,
 	}
 
-	return request
+	for ind := range params {
+		if !queryValues.Has(params[ind]) {
+			return clientAuthRequest{}, MissingQueryValueError{parameter: params[ind]}
+		}
+	}
+
+	request := clientAuthRequest{
+		ClientID:            queryValues.Get(clientID),
+		CodeChallenge:       queryValues.Get(codeChallenge),
+		CodeChallengeMethod: queryValues.Get(codeChallengeMethod),
+		Me:                  queryValues.Get(me),
+		RedirectURI:         queryValues.Get(redirectURI),
+		ResponseType:        queryValues.Get(responseType),
+		Scope:               strings.Split(queryValues.Get(scope), " "),
+		State:               queryValues.Get(state),
+	}
+
+	return request, nil
 }

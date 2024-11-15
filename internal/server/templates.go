@@ -6,5 +6,13 @@ package server
 
 import "embed"
 
-//go:embed templates/*
-var templates embed.FS
+const (
+	templatesFSDir = "ui/templates"
+	staticFSDir    = "ui/static"
+)
+
+//go:embed ui/templates/*
+var templatesFS embed.FS
+
+//go:embed ui/static/*
+var staticFS embed.FS
