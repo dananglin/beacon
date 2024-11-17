@@ -54,7 +54,7 @@ func (s *Server) authorize(writer http.ResponseWriter, request *http.Request, pr
 
 	// Ensure that the profile ID in the client's authorisation request matches the authenticated
 	// profile ID.
-	if authReq.Me != profileID {
+	if authReq.Me != "" && authReq.Me != profileID {
 		sendClientError(
 			writer,
 			http.StatusUnauthorized,
@@ -327,20 +327,19 @@ func newClientAuthRequestFromQuery(queryValues url.Values) (clientAuthRequest, e
 		state               = "state"
 	)
 
-	params := []string{
+	required := []string{
 		clientID,
 		codeChallenge,
 		codeChallengeMethod,
-		me,
 		redirectURI,
 		responseType,
 		scope,
 		state,
 	}
 
-	for ind := range params {
-		if !queryValues.Has(params[ind]) {
-			return clientAuthRequest{}, MissingQueryValueError{parameter: params[ind]}
+	for ind := range required {
+		if !queryValues.Has(required[ind]) {
+			return clientAuthRequest{}, MissingQueryValueError{parameter: required[ind]}
 		}
 	}
 

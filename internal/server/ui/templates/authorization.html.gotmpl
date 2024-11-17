@@ -14,7 +14,17 @@
     <body>
         <h1>Sign in to {{ .ClientID }}</h1>
 
-        <p><a href="{{ .ClientURI }}">{{ .ClientName }}</a> is requesting that you sign in to their app as <b>{{ .ProfileID }}</b></p>
+        <p>
+	{{- if and (ne .ClientName "") (ne .ClientURI "") -}}
+        <a href="{{ .ClientURI }}">{{ .ClientName }}</a>
+	{{- else -}}
+        <a href="{{ .ClientID }}">{{ .ClientID }}</a>
+	{{- end -}}
+	{{ print "" }}
+	is requesting that you sign in to their app as</p>
+
+	<p><b>{{ .ProfileID }}</b></p>
+
 	{{ if gt (len .Scopes) 0 }}
 	<p>The following scopes are included in this request:</p>
 	<ul>
@@ -23,6 +33,7 @@
 	    {{ end }}
 	</ul>
 	{{ end }}
+
         <p>Select <b>Accept</b> to sign in, or <b>Reject</b> to reject the request.</p>
         <p>You will be redirected to {{ .ClientRedirectURI }}</p>
 
