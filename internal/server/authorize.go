@@ -13,9 +13,12 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"slices"
 	"strings"
 	"time"
 
+	"codeflow.dananglin.me.uk/apollo/beacon/internal/auth"
+	"codeflow.dananglin.me.uk/apollo/beacon/internal/database"
 	"codeflow.dananglin.me.uk/apollo/beacon/internal/discovery"
 	"codeflow.dananglin.me.uk/apollo/beacon/internal/utilities"
 )
@@ -151,6 +154,8 @@ func (s *Server) authorizeRedirectToLogin(writer http.ResponseWriter, request *h
 			http.StatusBadRequest,
 			fmt.Errorf("error creating the client authorization request from query: %w", err),
 		)
+
+		return
 	}
 
 	encodedAuthRequest, err := utilities.GobEncode(authRequest)
@@ -159,6 +164,8 @@ func (s *Server) authorizeRedirectToLogin(writer http.ResponseWriter, request *h
 			writer,
 			fmt.Errorf("error encoding the client authorized request to gob data: %w", err),
 		)
+
+		return
 	}
 
 	expiry := 10 * time.Minute
@@ -186,11 +193,12 @@ func (s *Server) authorizeRedirectToLogin(writer http.ResponseWriter, request *h
 	http.Redirect(writer, request, redirectURL, http.StatusSeeOther)
 }
 
-type authResponse struct {
+type clientRequestData struct {
 	ClientID            string
 	CodeChallenge       string
 	CodeChallengeMethod string
 	RedirectURI         string
+	Scopes              []string
 	Me                  string
 }
 
@@ -214,16 +222,19 @@ func (s *Server) authorizeAccept(writer http.ResponseWriter, request *http.Reque
 			writer,
 			fmt.Errorf("unable to create random bytes: %w", err),
 		)
+
+		return
 	}
 
 	authCode := hex.EncodeToString(authCodeBytes)
 
 	// Data associated with the authorization code
-	authResp := authResponse{
+	authResp := clientRequestData{
 		ClientID:            authReq.ClientID,
 		CodeChallenge:       authReq.CodeChallenge,
 		CodeChallengeMethod: authReq.CodeChallengeMethod,
 		RedirectURI:         authReq.RedirectURI,
+		Scopes:              authReq.Scope,
 		Me:                  profileID,
 	}
 
@@ -233,6 +244,8 @@ func (s *Server) authorizeAccept(writer http.ResponseWriter, request *http.Reque
 			writer,
 			fmt.Errorf("unable to encode the data: %w", err),
 		)
+
+		return
 	}
 
 	// Save code and associated data to the server's cache
@@ -273,6 +286,107 @@ func (s *Server) authorizeReject(writer http.ResponseWriter, request *http.Reque
 	)
 
 	writer.Header().Add("HX-Redirect", redirectURL)
+}
+
+func (s *Server) profileExchange(writer http.ResponseWriter, request *http.Request, data clientRequestData) {
+	// Get the profile information if requested.
+	profile := make(map[string]string)
+
+	if slices.Contains(data.Scopes, "profile") {
+		// Get the profile information from the database
+		info, err := database.GetProfileInformation(s.boltdb, data.Me)
+		if err != nil {
+			sendServerError(
+				writer,
+				fmt.Errorf("unable to get the profile information for %q: %w", data.Me, err),
+			)
+
+			return
+		}
+
+		profile = map[string]string{
+			"name":  info.Name,
+			"url":   info.URL,
+			"photo": info.PhotoURL,
+		}
+
+		if slices.Contains(data.Scopes, "email") {
+			profile["email"] = info.Email
+		}
+	}
+
+	// Construct the JSON response and send it back to the client
+	response := struct {
+		Me      string            `json:"me"`
+		Profile map[string]string `json:"profile,omitempty"`
+	}{
+		Me:      data.Me,
+		Profile: profile,
+	}
+
+	sendJSONResponse(writer, http.StatusOK, response)
+}
+
+func (s *Server) tokenExchange(writer http.ResponseWriter, request *http.Request, data clientRequestData) {
+	var err error
+
+	// Create the access token.
+	// If there are no requested scopes then the access token won't be created.
+	bearerToken := ""
+	if len(data.Scopes) > 0 {
+		bearerToken, err = auth.CreateBearerToken()
+		if err != nil {
+			sendServerError(
+				writer,
+				fmt.Errorf("unable to create the bearer token: %w", err),
+			)
+
+			return
+		}
+	}
+
+	// Get the profile information if requested.
+	profile := make(map[string]string)
+
+	if slices.Contains(data.Scopes, "profile") {
+		// Get the profile information from the database
+		info, err := database.GetProfileInformation(s.boltdb, data.Me)
+		if err != nil {
+			sendServerError(
+				writer,
+				fmt.Errorf("unable to get the profile information for %q: %w", data.Me, err),
+			)
+
+			return
+		}
+
+		profile = map[string]string{
+			"name":  info.Name,
+			"url":   info.URL,
+			"photo": info.PhotoURL,
+		}
+
+		if slices.Contains(data.Scopes, "email") {
+			profile["email"] = info.Email
+		}
+	}
+
+	// Construct the JSON response and send it back to the client.
+	response := struct {
+		AccessToken string            `json:"access_token"`
+		TokenType   string            `json:"token_type"`
+		Scope       string            `json:"scope"`
+		Me          string            `json:"me"`
+		Profile     map[string]string `json:"profile,omitempty"`
+	}{
+		AccessToken: bearerToken,
+		TokenType:   "Bearer",
+		Scope:       strings.Join(data.Scopes, " "),
+		Me:          data.Me,
+		Profile:     profile,
+	}
+
+	sendJSONResponse(writer, http.StatusOK, response)
 }
 
 type clientAuthRequest struct {

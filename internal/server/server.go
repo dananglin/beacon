@@ -103,8 +103,10 @@ func (s *Server) setupRouter() error {
 	mux.Handle("GET /profile/setup", setRequestID(http.HandlerFunc(s.setup)))
 	mux.Handle("POST /profile/setup", setRequestID(http.HandlerFunc(s.setup)))
 	mux.Handle("GET "+s.authPath, setRequestID(s.protected(s.authorize, s.authorizeRedirectToLogin)))
+	mux.Handle("POST "+s.authPath, setRequestID(s.exchangeAuthorization(s.profileExchange)))
 	mux.Handle("POST "+s.authPath+"/accept", setRequestID(s.protected(s.authorizeAccept, nil)))
 	mux.Handle("POST "+s.authPath+"/reject", setRequestID(s.protected(s.authorizeReject, nil)))
+	mux.Handle("POST "+s.tokenPath, setRequestID(s.exchangeAuthorization(s.tokenExchange)))
 
 	s.httpServer.Handler = mux
 
