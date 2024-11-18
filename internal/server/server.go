@@ -9,7 +9,6 @@ import (
 	"io/fs"
 	"log/slog"
 	"net/http"
-	"strings"
 	"time"
 
 	"codeflow.dananglin.me.uk/apollo/beacon/internal/cache"
@@ -19,20 +18,25 @@ import (
 	bolt "go.etcd.io/bbolt"
 )
 
-type Server struct {
-	httpServer          *http.Server
-	boltdb              *bolt.DB
-	cache               *cache.Cache
-	domainName          string
-	jwtSecret           string
-	jwtCookieName       string
-	indieauthCookieName string
-	authPath            string
-	authEndpoint        string
-	issuer              string
-	tokenEndpoint       string
-	tokenPath           string
-}
+type (
+	profileHandlerFunc  func(writer http.ResponseWriter, request *http.Request, profileID string)
+	exchangeHandlerFunc func(writer http.ResponseWriter, request *http.Request, data clientRequestData)
+
+	Server struct {
+		httpServer          *http.Server
+		boltdb              *bolt.DB
+		cache               *cache.Cache
+		domainName          string
+		jwtSecret           string
+		jwtCookieName       string
+		indieauthCookieName string
+		authPath            string
+		authEndpoint        string
+		issuer              string
+		tokenEndpoint       string
+		tokenPath           string
+	}
+)
 
 func NewServer(configPath string) (*Server, error) {
 	cfg, err := config.NewConfig(configPath)
@@ -95,18 +99,18 @@ func (s *Server) setupRouter() error {
 
 	mux.Handle("GET /{$}", http.HandlerFunc(s.rootRedirect))
 	mux.Handle("GET /static/", http.StripPrefix("/static", neuter(fileServer)))
-	mux.Handle("GET /.well-known/oauth-authorization-server", setRequestID(http.HandlerFunc(s.getMetadata)))
-	mux.Handle("GET /profile/login", setRequestID(http.HandlerFunc(s.getLoginForm)))
-	mux.Handle("POST /profile/login", setRequestID(http.HandlerFunc(s.authenticate)))
-	mux.Handle("GET /profile/overview", setRequestID(s.protected(s.getOverviewPage, s.profileRedirectToLogin)))
-	mux.Handle("POST /profile/overview", setRequestID(s.protected(s.updateProfileInformation, s.profileRedirectToLogin)))
-	mux.Handle("GET /profile/setup", setRequestID(http.HandlerFunc(s.setup)))
-	mux.Handle("POST /profile/setup", setRequestID(http.HandlerFunc(s.setup)))
-	mux.Handle("GET "+s.authPath, setRequestID(s.protected(s.authorize, s.authorizeRedirectToLogin)))
-	mux.Handle("POST "+s.authPath, setRequestID(s.exchangeAuthorization(s.profileExchange)))
-	mux.Handle("POST "+s.authPath+"/accept", setRequestID(s.protected(s.authorizeAccept, nil)))
-	mux.Handle("POST "+s.authPath+"/reject", setRequestID(s.protected(s.authorizeReject, nil)))
-	mux.Handle("POST "+s.tokenPath, setRequestID(s.exchangeAuthorization(s.tokenExchange)))
+	mux.Handle("GET /.well-known/oauth-authorization-server", entrypoint(http.HandlerFunc(s.getMetadata)))
+	mux.Handle("GET /profile/login", entrypoint(http.HandlerFunc(s.getLoginForm)))
+	mux.Handle("POST /profile/login", entrypoint(http.HandlerFunc(s.authenticate)))
+	mux.Handle("GET /profile/overview", entrypoint(s.profileAuthorization(s.getOverviewPage, s.profileRedirectToLogin)))
+	mux.Handle("POST /profile/overview", entrypoint(s.profileAuthorization(s.updateProfileInformation, s.profileRedirectToLogin)))
+	mux.Handle("GET /profile/setup", entrypoint(http.HandlerFunc(s.setup)))
+	mux.Handle("POST /profile/setup", entrypoint(http.HandlerFunc(s.setup)))
+	mux.Handle("GET "+s.authPath, entrypoint(s.profileAuthorization(s.authorize, s.authorizeRedirectToLogin)))
+	mux.Handle("POST "+s.authPath, entrypoint(s.exchangeAuthorization(s.profileExchange)))
+	mux.Handle("POST "+s.authPath+"/accept", entrypoint(s.profileAuthorization(s.authorizeAccept, nil)))
+	mux.Handle("POST "+s.authPath+"/reject", entrypoint(s.profileAuthorization(s.authorizeReject, nil)))
+	mux.Handle("POST "+s.tokenPath, entrypoint(s.exchangeAuthorization(s.tokenExchange)))
 
 	s.httpServer.Handler = mux
 
@@ -130,19 +134,7 @@ func (s *Server) rootRedirect(writer http.ResponseWriter, request *http.Request)
 		return
 	}
 
+	// TODO: Once the entrypoint has been updated, remove the above and just redirect.
+	//       Then wrap this function inside the entrypoint.
 	http.Redirect(writer, request, "/profile/login", http.StatusSeeOther)
-}
-
-func neuter(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
-		if strings.HasSuffix(request.URL.Path, "/") {
-			sendClientError(
-				writer,
-				http.StatusNotFound,
-				fmt.Errorf("the path must not end with a %q", "/"),
-			)
-		}
-
-		next.ServeHTTP(writer, request)
-	})
 }

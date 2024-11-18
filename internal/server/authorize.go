@@ -5,9 +5,7 @@
 package server
 
 import (
-	"bytes"
 	"crypto/rand"
-	"encoding/gob"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -22,27 +20,6 @@ import (
 	"codeflow.dananglin.me.uk/apollo/beacon/internal/discovery"
 	"codeflow.dananglin.me.uk/apollo/beacon/internal/utilities"
 )
-
-type MismatchedProfileIDError struct {
-	authenticatedProfileID string
-	profileIDInRequest     string
-}
-
-func (e MismatchedProfileIDError) Error() string {
-	return "the authenticated profile ID (" +
-		e.authenticatedProfileID +
-		") does not match the profile ID in the authorize request (" +
-		e.profileIDInRequest +
-		")"
-}
-
-type MissingQueryValueError struct {
-	parameter string
-}
-
-func (e MissingQueryValueError) Error() string {
-	return "the value for '" + e.parameter + "' is missing from the URL's query"
-}
 
 func (s *Server) authorize(writer http.ResponseWriter, request *http.Request, profileID string) {
 	authReq, err := newClientAuthRequest(s.indieauthCookieName, request)
@@ -158,7 +135,7 @@ func (s *Server) authorizeRedirectToLogin(writer http.ResponseWriter, request *h
 		return
 	}
 
-	encodedAuthRequest, err := utilities.GobEncode(authRequest)
+	encodedAuthRequest, err := utilities.GobBase64Encode(authRequest)
 	if err != nil {
 		sendServerError(
 			writer,
@@ -238,8 +215,8 @@ func (s *Server) authorizeAccept(writer http.ResponseWriter, request *http.Reque
 		Me:                  profileID,
 	}
 
-	buffer := new(bytes.Buffer)
-	if err := gob.NewEncoder(buffer).Encode(authResp); err != nil {
+	authRespBytes, err := utilities.GobEncode(authResp)
+	if err != nil {
 		sendServerError(
 			writer,
 			fmt.Errorf("unable to encode the data: %w", err),
@@ -251,7 +228,7 @@ func (s *Server) authorizeAccept(writer http.ResponseWriter, request *http.Reque
 	// Save code and associated data to the server's cache
 	s.cache.Add(
 		authCode,
-		buffer.Bytes(),
+		authRespBytes,
 		time.Now().Add(1*time.Minute),
 	)
 
@@ -419,7 +396,7 @@ func newClientAuthRequest(cookieName string, request *http.Request) (clientAuthR
 	}
 
 	var authReq clientAuthRequest
-	if err := utilities.GobDecode(cookie.Value, &authReq); err != nil {
+	if err := utilities.GobBase64Decode(cookie.Value, &authReq); err != nil {
 		return clientAuthRequest{}, fmt.Errorf(
 			"error decoding the client's authorize request from cookie: %w",
 			err,

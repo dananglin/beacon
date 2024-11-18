@@ -6,10 +6,10 @@ package database
 
 import (
 	"bytes"
-	"encoding/gob"
 	"errors"
 	"fmt"
 
+	"codeflow.dananglin.me.uk/apollo/beacon/internal/utilities"
 	bolt "go.etcd.io/bbolt"
 )
 
@@ -36,17 +36,15 @@ func UpdateInitialisedKey(boltdb *bolt.DB) error {
 			return fmt.Errorf("the %s bucket does not exist", string(bucketName))
 		}
 
-		initialised := true
-		buffer := new(bytes.Buffer)
-
-		if err := gob.NewEncoder(buffer).Encode(initialised); err != nil {
+		initialised, err := utilities.GobEncode(true)
+		if err != nil {
 			return fmt.Errorf(
-				"unable to encode the initialised value: %w",
+				"unable to gob encode the initialised value: %w",
 				err,
 			)
 		}
 
-		if err := bucket.Put(initialisedKey, buffer.Bytes()); err != nil {
+		if err := bucket.Put(initialisedKey, initialised); err != nil {
 			return fmt.Errorf(
 				"unable to add the initialised key and value to the bucket: %w",
 				err,
@@ -79,9 +77,7 @@ func Initialised(boltdb *bolt.DB) (bool, error) {
 			return errors.New("the initialised key is not present in the bucket")
 		}
 
-		buffer := bytes.NewBuffer(data)
-
-		if err := gob.NewDecoder(buffer).Decode(&initialised); err != nil {
+		if err := utilities.GobDecode(bytes.NewBuffer(data), &initialised); err != nil {
 			return fmt.Errorf("unable to decode the value of the initialised key: %w", err)
 		}
 
@@ -140,17 +136,15 @@ func addInitialisedKey(boltdb *bolt.DB) error {
 			return fmt.Errorf("the %s bucket does not exist", string(bucketName))
 		}
 
-		notInitialised := false
-		buffer := new(bytes.Buffer)
-
-		if err := gob.NewEncoder(buffer).Encode(notInitialised); err != nil {
+		notInitialised, err := utilities.GobEncode(false)
+		if err != nil {
 			return fmt.Errorf(
 				"unable to encode the notInitialised value: %w",
 				err,
 			)
 		}
 
-		if err := bucket.Put(initialisedKey, buffer.Bytes()); err != nil {
+		if err := bucket.Put(initialisedKey, notInitialised); err != nil {
 			return fmt.Errorf(
 				"unable to add the initialised key and value to the bucket: %w",
 				err,

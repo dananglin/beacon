@@ -6,19 +6,48 @@ package server
 
 import (
 	"bytes"
-	"encoding/gob"
+	"crypto/rand"
+	"encoding/hex"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
+	"strings"
 
 	"codeflow.dananglin.me.uk/apollo/beacon/internal/auth"
 	"codeflow.dananglin.me.uk/apollo/beacon/internal/database"
+	"codeflow.dananglin.me.uk/apollo/beacon/internal/utilities"
 )
 
-func (s *Server) protected(
-	next func(writer http.ResponseWriter, request *http.Request, profileID string),
-	redirectToLogin func(writer http.ResponseWriter, request *http.Request),
-) http.Handler {
+// entrypoint is the middleware that acts as the entry point of all requests. The entrypoint
+// assigns each request with a unique ID for troubleshooting and writes an access log when each
+// request is completed.
+func entrypoint(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		// TODO: Check if the app is initialised once the setup
+		// process has been updated.
+
+		requestID := "UNKNOWN"
+		id := make([]byte, 16)
+
+		if _, err := rand.Read(id); err != nil {
+			slog.Error("unable to create the request ID.", "error", err.Error())
+		} else {
+			requestID = hex.EncodeToString(id)
+		}
+
+		writer.Header().Set("X-Request-ID", requestID)
+
+		next.ServeHTTP(writer, request)
+
+		// TODO: Write access log
+	})
+}
+
+// profileAuthorization is a middleware that performs profile authorization before calling
+// the profile handler. If the cookie storing the authorization information is missing then
+// the user is redirected to the login screen.
+func (s *Server) profileAuthorization(next profileHandlerFunc, redirectToLogin http.HandlerFunc) http.Handler {
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		cookie, err := request.Cookie(s.jwtCookieName)
 		if err != nil {
@@ -84,7 +113,7 @@ func (s *Server) protected(
 			sendClientError(
 				writer,
 				http.StatusUnauthorized,
-				errors.New("invalid token"),
+				ErrInvalidProfileAccessToken,
 			)
 
 			return
@@ -98,9 +127,7 @@ func (s *Server) protected(
 	})
 }
 
-func (s *Server) exchangeAuthorization(
-	exchange func(writer http.ResponseWriter, request *http.Request, data clientRequestData),
-) http.Handler {
+func (s *Server) exchangeAuthorization(exchange exchangeHandlerFunc) http.Handler {
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		if err := request.ParseForm(); err != nil {
 			sendClientError(
@@ -125,7 +152,7 @@ func (s *Server) exchangeAuthorization(
 			sendClientError(
 				writer,
 				http.StatusUnprocessableEntity,
-				errors.New("the required parameter 'grant_type' is missing"),
+				ErrMissingGrantType,
 			)
 
 			return
@@ -135,7 +162,7 @@ func (s *Server) exchangeAuthorization(
 			sendClientError(
 				writer,
 				http.StatusUnprocessableEntity,
-				fmt.Errorf("unsupported grant_type: %q", grantType),
+				UnsupportedGrantTypeError{grantType: grantType},
 			)
 
 			return
@@ -147,7 +174,7 @@ func (s *Server) exchangeAuthorization(
 			sendClientError(
 				writer,
 				http.StatusUnauthorized,
-				errors.New("invalid authorization code: the code is not present in the cache"),
+				ErrMissingAuthorizationCode,
 			)
 
 			return
@@ -157,16 +184,15 @@ func (s *Server) exchangeAuthorization(
 			sendClientError(
 				writer,
 				http.StatusUnauthorized,
-				errors.New("invalid authorization code: the code has expired"),
+				ErrExpiredAuthorizationCode,
 			)
 
 			return
 		}
 
-		var data clientRequestData
+		var initialClientAuthReq clientRequestData
 
-		buffer := bytes.NewBuffer(cacheEntry.Value())
-		if err := gob.NewDecoder(buffer).Decode(&data); err != nil {
+		if err := utilities.GobDecode(bytes.NewBuffer(cacheEntry.Value()), &initialClientAuthReq); err != nil {
 			sendServerError(
 				writer,
 				fmt.Errorf("unable to decode the data from the cache: %w", err),
@@ -176,22 +202,28 @@ func (s *Server) exchangeAuthorization(
 		}
 
 		// The client ID must match
-		if clientID != data.ClientID {
+		if clientID != initialClientAuthReq.ClientID {
 			sendClientError(
 				writer,
 				http.StatusUnauthorized,
-				errors.New("mismatched client ID"),
+				MismatchedClientIDError{
+					exchangedClientID: clientID,
+					initialClientID:   initialClientAuthReq.ClientID,
+				},
 			)
 
 			return
 		}
 
 		// The redirect URI must match
-		if redirectURI != data.RedirectURI {
+		if redirectURI != initialClientAuthReq.RedirectURI {
 			sendClientError(
 				writer,
 				http.StatusUnauthorized,
-				errors.New("mismatched redirect URI"),
+				MismatchedRedirectURIError{
+					exchangedRedirectURI: redirectURI,
+					initialRedirectURI:   initialClientAuthReq.RedirectURI,
+				},
 			)
 
 			return
@@ -199,8 +231,8 @@ func (s *Server) exchangeAuthorization(
 
 		// Verify the code verifier
 		if err := auth.VerifyAuthorizationCode(
-			data.CodeChallengeMethod,
-			data.CodeChallenge,
+			initialClientAuthReq.CodeChallengeMethod,
+			initialClientAuthReq.CodeChallenge,
 			codeVerifier,
 		); err != nil {
 			sendClientError(
@@ -213,10 +245,24 @@ func (s *Server) exchangeAuthorization(
 		}
 
 		// The client is now authorized to complete the required exchange.
-		exchange(writer, request, data)
+		exchange(writer, request, initialClientAuthReq)
 
 		// Delete the code and associated data from the cache
 		// to ensure that is doesn't get used again.
 		s.cache.Delete(code)
+	})
+}
+
+func neuter(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		if strings.HasSuffix(request.URL.Path, "/") {
+			sendClientError(
+				writer,
+				http.StatusNotFound,
+				ErrInvalidFileserverPath,
+			)
+		}
+
+		next.ServeHTTP(writer, request)
 	})
 }

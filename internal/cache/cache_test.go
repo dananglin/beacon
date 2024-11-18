@@ -6,12 +6,12 @@ package cache_test
 
 import (
 	"bytes"
-	"encoding/gob"
 	"reflect"
 	"testing"
 	"time"
 
 	"codeflow.dananglin.me.uk/apollo/beacon/internal/cache"
+	"codeflow.dananglin.me.uk/apollo/beacon/internal/utilities"
 )
 
 type TestData struct {
@@ -41,9 +41,8 @@ func testAddEntry(testCache *cache.Cache) func(t *testing.T) {
 			BoolVal: true,
 		}
 
-		encodeBuffer := new(bytes.Buffer)
-
-		if err := gob.NewEncoder(encodeBuffer).Encode(data); err != nil {
+		dataBytes, err := utilities.GobEncode(data)
+		if err != nil {
 			t.Fatalf(
 				"FAILED test %s: Unable to encode the test data: %v",
 				t.Name(),
@@ -54,7 +53,7 @@ func testAddEntry(testCache *cache.Cache) func(t *testing.T) {
 		key := t.Name()
 		expiresAt := time.Now().Add(1 * time.Minute)
 
-		testCache.Add(key, encodeBuffer.Bytes(), expiresAt)
+		testCache.Add(key, dataBytes, expiresAt)
 
 		t.Log("Added the test data to the cache.")
 
@@ -71,9 +70,7 @@ func testAddEntry(testCache *cache.Cache) func(t *testing.T) {
 
 		var got TestData
 
-		decodeBuffer := bytes.NewBuffer(entry.Value())
-
-		if err := gob.NewDecoder(decodeBuffer).Decode(&got); err != nil {
+		if err := utilities.GobDecode(bytes.NewBuffer(entry.Value()), &got); err != nil {
 			t.Fatalf(
 				"FAILED test %s: Unable to decode the data from the cache: %v",
 				t.Name(),
@@ -116,9 +113,8 @@ func testDeleteEntry(testCache *cache.Cache) func(t *testing.T) {
 			BoolVal: false,
 		}
 
-		encodeBuffer := new(bytes.Buffer)
-
-		if err := gob.NewEncoder(encodeBuffer).Encode(data); err != nil {
+		dataBytes, err := utilities.GobEncode(data)
+		if err != nil {
 			t.Fatalf(
 				"FAILED test %s: Unable to encode the test data: %v",
 				t.Name(),
@@ -129,7 +125,7 @@ func testDeleteEntry(testCache *cache.Cache) func(t *testing.T) {
 		key := t.Name()
 		expiresAt := time.Now().Add(1 * time.Minute)
 
-		testCache.Add(key, encodeBuffer.Bytes(), expiresAt)
+		testCache.Add(key, dataBytes, expiresAt)
 
 		t.Log("Added the test data to the cache.")
 
@@ -161,9 +157,8 @@ func testExpiredEntry(testCache *cache.Cache) func(t *testing.T) {
 			BoolVal: true,
 		}
 
-		encodeBuffer := new(bytes.Buffer)
-
-		if err := gob.NewEncoder(encodeBuffer).Encode(data); err != nil {
+		dataBytes, err := utilities.GobEncode(data)
+		if err != nil {
 			t.Fatalf(
 				"FAILED test %s: Unable to encode the test data: %v",
 				t.Name(),
@@ -174,7 +169,7 @@ func testExpiredEntry(testCache *cache.Cache) func(t *testing.T) {
 		key := t.Name()
 		expiresAt := time.Now().Add(1 * time.Millisecond)
 
-		testCache.Add(key, encodeBuffer.Bytes(), expiresAt)
+		testCache.Add(key, dataBytes, expiresAt)
 
 		t.Log("Added the test data to the cache.")
 
@@ -212,9 +207,8 @@ func testCleanup(testCache *cache.Cache) func(t *testing.T) {
 			BoolVal: false,
 		}
 
-		encodeBuffer := new(bytes.Buffer)
-
-		if err := gob.NewEncoder(encodeBuffer).Encode(data); err != nil {
+		dataBytes, err := utilities.GobEncode(data)
+		if err != nil {
 			t.Fatalf(
 				"FAILED test %s: Unable to encode the test data: %v",
 				t.Name(),
@@ -225,7 +219,7 @@ func testCleanup(testCache *cache.Cache) func(t *testing.T) {
 		key := t.Name()
 		expiresAt := time.Now().Add(1 * time.Millisecond)
 
-		testCache.Add(key, encodeBuffer.Bytes(), expiresAt)
+		testCache.Add(key, dataBytes, expiresAt)
 
 		t.Log("Added the test data to the cache.")
 		t.Log("Waiting for the next cache clean-up")

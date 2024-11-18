@@ -6,10 +6,10 @@ package database
 
 import (
 	"bytes"
-	"encoding/gob"
 	"fmt"
 	"time"
 
+	"codeflow.dananglin.me.uk/apollo/beacon/internal/utilities"
 	bolt "go.etcd.io/bbolt"
 )
 
@@ -102,15 +102,15 @@ func saveProfile(boltdb *bolt.DB, profileID string, profile Profile) error {
 
 		key := []byte(profileID)
 
-		buffer := new(bytes.Buffer)
-		if err := gob.NewEncoder(buffer).Encode(profile); err != nil {
+		profileBytes, err := utilities.GobEncode(profile)
+		if err != nil {
 			return fmt.Errorf(
 				"unable to encode the user data: %w",
 				err,
 			)
 		}
 
-		if err := bucket.Put(key, buffer.Bytes()); err != nil {
+		if err := bucket.Put(key, profileBytes); err != nil {
 			return fmt.Errorf(
 				"unable to update the user in the %s bucket: %w",
 				string(bucketName),
@@ -196,9 +196,7 @@ func getProfile(boltdb *bolt.DB, profileID string) (Profile, error) {
 			return ProfileNotExistError{profileID: profileID}
 		}
 
-		buffer := bytes.NewBuffer(data)
-
-		if err := gob.NewDecoder(buffer).Decode(&profile); err != nil {
+		if err := utilities.GobDecode(bytes.NewBuffer(data), &profile); err != nil {
 			return fmt.Errorf("unable to decode the profile: %w", err)
 		}
 
