@@ -7,12 +7,13 @@ package server
 import "errors"
 
 var (
-	ErrApplicationAlreadyInitialised = errors.New("the application is already initialised")
-	ErrMissingAuthorizationCode      = errors.New("invalid authorization code: the code is not present in the cache")
-	ErrExpiredAuthorizationCode      = errors.New("invalid authorization code: the code has expired")
-	ErrMissingGrantType              = errors.New("the required parameter 'grant_type' is missing")
-	ErrInvalidProfileAccessToken     = errors.New("invalid profile access token")
-	ErrInvalidFileserverPath         = errors.New("the path must not end with a '/'")
+	ErrDatabaseAlreadyInitialized = errors.New("the database is already initialized")
+	ErrDatabaseNotInitialized     = errors.New("the database does not appear to be initialized")
+	ErrMissingAuthorizationCode   = errors.New("invalid authorization code: the code is not present in the cache")
+	ErrExpiredAuthorizationCode   = errors.New("invalid authorization code: the code has expired")
+	ErrMissingGrantType           = errors.New("the required parameter 'grant_type' is missing")
+	ErrInvalidProfileAccessToken  = errors.New("invalid profile access token")
+	ErrInvalidFileserverPath      = errors.New("the path must not end with a '/'")
 )
 
 type MismatchedProfileIDError struct {

@@ -13,7 +13,8 @@ import (
 	bolt "go.etcd.io/bbolt"
 )
 
-func New(path string) (*bolt.DB, error) {
+// Open opens the BoltDB database at the given path.
+func Open(path string) (*bolt.DB, error) {
 	dir := filepath.Dir(path)
 
 	if err := os.MkdirAll(dir, 0o700); err != nil {
@@ -33,54 +34,54 @@ func New(path string) (*bolt.DB, error) {
 		)
 	}
 
-	if err := ensureBucket(boltdb); err != nil {
-		return nil, fmt.Errorf(
-			"unable to ensure that the required buckets are present in the database: %w",
-			err,
-		)
-	}
-
-	// Add the initialised key to the bucket if it does
-	// not exist already.
-	initialisedKey, err := initialisedKeyExists(boltdb)
-	if err != nil {
-		return nil, err
-	}
-
-	if !initialisedKey {
-		if err := addInitialisedKey(boltdb); err != nil {
-			return nil, err
-		}
-	}
-
 	return boltdb, nil
 }
 
-func ensureBucket(boltdb *bolt.DB) error {
-	err := boltdb.Update(func(tx *bolt.Tx) error {
-		bucket := getBucketName()
-		if _, err := tx.CreateBucketIfNotExists(bucket); err != nil {
+// Setup sets up the database by creating the 'profiles' bucket and
+// writing the first profile to that bucket.
+func Setup(boltdb *bolt.DB, profileID string, profile Profile) error {
+	if err := boltdb.Update(func(tx *bolt.Tx) error {
+		bucket := getBucketName(profilesBucketName)
+		if _, err := tx.CreateBucket(bucket); err != nil {
 			return fmt.Errorf(
-				"unable to ensure the existence of the %q bucket: %w",
-				string(bucket),
+				"unable to create the bucket %q: %w",
+				profilesBucketName,
 				err,
 			)
 		}
 
 		return nil
-	})
-	if err != nil {
-		return fmt.Errorf(
-			"error ensuring the existence of the buckets in the database: %w",
-			err,
-		)
+	}); err != nil {
+		return fmt.Errorf("error creating the BoltDB bucket: %w", err)
+	}
+
+	if err := saveProfile(boltdb, profileID, profile); err != nil {
+		return fmt.Errorf("error saving the profile: %w", err)
 	}
 
 	return nil
 }
 
-const bucketName string = "application"
+// Initialized checks to see if the database is initialized or not.
+// The database is initialized if the 'profiles' bucket exists and that
+// there is at least one profile stored in the bucket.
+func Initialized(boltdb *bolt.DB) (bool, error) {
+	initialized := false
 
-func getBucketName() []byte {
-	return []byte(bucketName)
+	if err := boltdb.View(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket(getBucketName(profilesBucketName))
+		if bucket == nil {
+			return nil
+		}
+
+		if bucket.Stats().BucketN > 0 {
+			initialized = true
+		}
+
+		return nil
+	}); err != nil {
+		return false, fmt.Errorf("error checking if the database is initialized or not: %w", err)
+	}
+
+	return initialized, nil
 }

@@ -15,9 +15,9 @@ import (
 func TestDatabase(t *testing.T) {
 	dbPath := filepath.Join("testdata", t.Name()+".golden")
 
-	t.Log("Opening and initialising the database.")
+	t.Log("Opening the database.")
 
-	boltdb, err := database.New(dbPath)
+	boltdb, err := database.Open(dbPath)
 	if err != nil {
 		t.Fatalf(
 			"FAILED test %s: Unable to open the database: %v",
@@ -34,6 +34,6 @@ func TestDatabase(t *testing.T) {
 		_ = os.Remove(dbPath)
 	}()
 
-	t.Run("Initialised key", testInitialised(boltdb, t.Name()+" (Initialised key)"))
-	t.Run("Profile", testProfile(boltdb, t.Name()+" (Profile)"))
+	t.Run("Test Database Setup", testDatabaseSetup(boltdb))
+	t.Run("Test Profile Lifecycle", testProfile(boltdb, t.Name()+" (Profile)"))
 }

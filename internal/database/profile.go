@@ -13,28 +13,10 @@ import (
 	bolt "go.etcd.io/bbolt"
 )
 
-type BucketNotExistError struct {
-	bucket string
-}
+const profilesBucketName string = "profiles"
 
-func (e BucketNotExistError) Error() string {
-	return "the '" + e.bucket + "' bucket does not exist"
-}
-
-type ProfileNotExistError struct {
-	profileID string
-}
-
-func (e ProfileNotExistError) Error() string {
-	return "the profile for '" + e.profileID + "' does not exist"
-}
-
-type ProfileAlreadyExistError struct {
-	profileID string
-}
-
-func (e ProfileAlreadyExistError) Error() string {
-	return "the profile for '" + e.profileID + "' is already present in the database"
+func getBucketName(name string) []byte {
+	return []byte(profilesBucketName)
 }
 
 type Profile struct {
@@ -91,7 +73,7 @@ func UpdateProfileInformation(boltdb *bolt.DB, profileID string, newProfileInfo 
 }
 
 func saveProfile(boltdb *bolt.DB, profileID string, profile Profile) error {
-	bucketName := getBucketName()
+	bucketName := getBucketName(profilesBucketName)
 
 	err := boltdb.Update(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket(bucketName)
@@ -130,7 +112,7 @@ func saveProfile(boltdb *bolt.DB, profileID string, profile Profile) error {
 // ProfileExists checks if a profile exists for a given website.
 func ProfileExists(boltdb *bolt.DB, profileID string) (bool, error) {
 	profileExists := false
-	bucketName := getBucketName()
+	bucketName := getBucketName(profilesBucketName)
 	key := []byte(profileID)
 
 	if err := boltdb.View(func(tx *bolt.Tx) error {
@@ -179,7 +161,7 @@ func GetProfileTokenVersion(boltdb *bolt.DB, profileID string) (int, error) {
 }
 
 func getProfile(boltdb *bolt.DB, profileID string) (Profile, error) {
-	bucketName := getBucketName()
+	bucketName := getBucketName(profilesBucketName)
 	key := []byte(profileID)
 
 	var profile Profile

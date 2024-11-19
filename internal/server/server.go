@@ -26,6 +26,7 @@ type (
 		httpServer          *http.Server
 		boltdb              *bolt.DB
 		cache               *cache.Cache
+		dbInitialized       bool
 		domainName          string
 		jwtSecret           string
 		jwtCookieName       string
@@ -44,7 +45,7 @@ func NewServer(configPath string) (*Server, error) {
 		return nil, fmt.Errorf("unable to load the config: %w", err)
 	}
 
-	boltdb, err := database.New(cfg.Database.Path)
+	boltdb, err := database.Open(cfg.Database.Path)
 	if err != nil {
 		return nil, fmt.Errorf("unable to open the database: %w", err)
 	}
@@ -69,6 +70,13 @@ func NewServer(configPath string) (*Server, error) {
 		tokenPath:           tokenPath,
 		tokenEndpoint:       fmt.Sprintf("https://%s%s", cfg.Domain, tokenPath),
 	}
+
+	dbInitialized, err := database.Initialized(server.boltdb)
+	if err != nil {
+		return nil, fmt.Errorf("unable to determine if the database has been initialized or not: %w", err)
+	}
+
+	server.dbInitialized = dbInitialized
 
 	if err := server.setupRouter(); err != nil {
 		return nil, fmt.Errorf("unable to set up the router: %w", err)
@@ -97,44 +105,26 @@ func (s *Server) setupRouter() error {
 
 	fileServer := http.FileServer(http.FS(staticRootFS))
 
-	mux.Handle("GET /{$}", http.HandlerFunc(s.rootRedirect))
+	mux.Handle("GET /setup", http.HandlerFunc(s.setup))
+	mux.Handle("POST /setup", http.HandlerFunc(s.setup))
 	mux.Handle("GET /static/", http.StripPrefix("/static", neuter(fileServer)))
-	mux.Handle("GET /.well-known/oauth-authorization-server", entrypoint(http.HandlerFunc(s.getMetadata)))
-	mux.Handle("GET /profile/login", entrypoint(http.HandlerFunc(s.getLoginForm)))
-	mux.Handle("POST /profile/login", entrypoint(http.HandlerFunc(s.authenticate)))
-	mux.Handle("GET /profile/overview", entrypoint(s.profileAuthorization(s.getOverviewPage, s.profileRedirectToLogin)))
-	mux.Handle("POST /profile/overview", entrypoint(s.profileAuthorization(s.updateProfileInformation, s.profileRedirectToLogin)))
-	mux.Handle("GET /profile/setup", entrypoint(http.HandlerFunc(s.setup)))
-	mux.Handle("POST /profile/setup", entrypoint(http.HandlerFunc(s.setup)))
-	mux.Handle("GET "+s.authPath, entrypoint(s.profileAuthorization(s.authorize, s.authorizeRedirectToLogin)))
-	mux.Handle("POST "+s.authPath, entrypoint(s.exchangeAuthorization(s.profileExchange)))
-	mux.Handle("POST "+s.authPath+"/accept", entrypoint(s.profileAuthorization(s.authorizeAccept, nil)))
-	mux.Handle("POST "+s.authPath+"/reject", entrypoint(s.profileAuthorization(s.authorizeReject, nil)))
-	mux.Handle("POST "+s.tokenPath, entrypoint(s.exchangeAuthorization(s.tokenExchange)))
+	mux.Handle("GET /{$}", s.entrypoint(http.HandlerFunc(rootRedirect)))
+	mux.Handle("GET /.well-known/oauth-authorization-server", s.entrypoint(http.HandlerFunc(s.getMetadata)))
+	mux.Handle("GET /profile/login", s.entrypoint(http.HandlerFunc(s.getLoginForm)))
+	mux.Handle("POST /profile/login", s.entrypoint(http.HandlerFunc(s.authenticate)))
+	mux.Handle("GET /profile/overview", s.entrypoint(s.profileAuthorization(s.getOverviewPage, s.profileRedirectToLogin)))
+	mux.Handle("POST /profile/overview", s.entrypoint(s.profileAuthorization(s.updateProfileInformation, s.profileRedirectToLogin)))
+	mux.Handle("GET "+s.authPath, s.entrypoint(s.profileAuthorization(s.authorize, s.authorizeRedirectToLogin)))
+	mux.Handle("POST "+s.authPath, s.entrypoint(s.exchangeAuthorization(s.profileExchange)))
+	mux.Handle("POST "+s.authPath+"/accept", s.entrypoint(s.profileAuthorization(s.authorizeAccept, nil)))
+	mux.Handle("POST "+s.authPath+"/reject", s.entrypoint(s.profileAuthorization(s.authorizeReject, nil)))
+	mux.Handle("POST "+s.tokenPath, s.entrypoint(s.exchangeAuthorization(s.tokenExchange)))
 
 	s.httpServer.Handler = mux
 
 	return nil
 }
 
-func (s *Server) rootRedirect(writer http.ResponseWriter, request *http.Request) {
-	initialised, err := database.Initialised(s.boltdb)
-	if err != nil {
-		sendServerError(
-			writer,
-			fmt.Errorf("unable to check if the application has been initialised: %w", err),
-		)
-
-		return
-	}
-
-	if !initialised {
-		http.Redirect(writer, request, "/profile/setup", http.StatusSeeOther)
-
-		return
-	}
-
-	// TODO: Once the entrypoint has been updated, remove the above and just redirect.
-	//       Then wrap this function inside the entrypoint.
+func rootRedirect(writer http.ResponseWriter, request *http.Request) {
 	http.Redirect(writer, request, "/profile/login", http.StatusSeeOther)
 }

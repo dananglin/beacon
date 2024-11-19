@@ -17,21 +17,21 @@ import (
 )
 
 func (s *Server) setup(writer http.ResponseWriter, request *http.Request) {
-	initialised, err := database.Initialised(s.boltdb)
+	dbInitialized, err := database.Initialized(s.boltdb)
 	if err != nil {
 		sendServerError(
 			writer,
-			fmt.Errorf("unable to check if the application has been initialised: %w", err),
+			fmt.Errorf("unable to check if the database has been initialized or not: %w", err),
 		)
 
 		return
 	}
 
-	if initialised {
+	if dbInitialized {
 		sendClientError(
 			writer,
 			http.StatusForbidden,
-			ErrApplicationAlreadyInitialised,
+			ErrDatabaseAlreadyInitialized,
 		)
 
 		return
@@ -122,7 +122,7 @@ func (s *Server) setupAccount(writer http.ResponseWriter, request *http.Request)
 		return
 	}
 
-	newProfile := database.Profile{
+	profile := database.Profile{
 		HashedPassword: hashedPassword,
 		Information: database.ProfileInformation{
 			Name:     form.Profile.DisplayName,
@@ -132,23 +132,36 @@ func (s *Server) setupAccount(writer http.ResponseWriter, request *http.Request)
 		},
 	}
 
-	if err := database.CreateProfile(s.boltdb, form.ProfileID, newProfile); err != nil {
+	if err := database.Setup(s.boltdb, form.ProfileID, profile); err != nil {
 		sendServerError(
 			writer,
-			fmt.Errorf("unable to create the profile in the database: %w", err),
+			fmt.Errorf("error setting up the database: %w", err),
 		)
 
 		return
 	}
 
-	if err := database.UpdateInitialisedKey(s.boltdb); err != nil {
+	// Ensure that the database has been initialized successfully.
+	dbInitialized, err := database.Initialized(s.boltdb)
+	if err != nil {
 		sendServerError(
 			writer,
-			fmt.Errorf("unable to update the app's initialised flag: %w", err),
+			fmt.Errorf("unable to check if the database has been initialized or not: %w", err),
 		)
 
 		return
 	}
+
+	if !dbInitialized {
+		sendServerError(
+			writer,
+			ErrDatabaseNotInitialized,
+		)
+
+		return
+	}
+
+	s.dbInitialized = dbInitialized
 
 	http.Redirect(writer, request, "/profile/login", http.StatusSeeOther)
 }

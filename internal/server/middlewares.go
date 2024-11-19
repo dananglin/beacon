@@ -22,10 +22,13 @@ import (
 // entrypoint is the middleware that acts as the entry point of all requests. The entrypoint
 // assigns each request with a unique ID for troubleshooting and writes an access log when each
 // request is completed.
-func entrypoint(next http.Handler) http.Handler {
+func (s *Server) entrypoint(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
-		// TODO: Check if the app is initialised once the setup
-		// process has been updated.
+		if !s.dbInitialized {
+			http.Redirect(writer, request, "/setup", http.StatusSeeOther)
+
+			return
+		}
 
 		requestID := "UNKNOWN"
 		id := make([]byte, 16)
