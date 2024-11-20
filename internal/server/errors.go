@@ -70,3 +70,19 @@ type UnsupportedGrantTypeError struct {
 func (e UnsupportedGrantTypeError) Error() string {
 	return "unsupported grant type: " + e.grantType
 }
+
+type ExistingStateKeyInCacheError struct {
+	encodedState string
+}
+
+func (e ExistingStateKeyInCacheError) Error() string {
+	return "the encoded state key '" + e.encodedState + "' is already present in the cache"
+}
+
+type StateKeyNotFoundInCacheError struct {
+	encodedState string
+}
+
+func (e StateKeyNotFoundInCacheError) Error() string {
+	return "the encoded state key '" + e.encodedState + "' is not present in the cache"
+}

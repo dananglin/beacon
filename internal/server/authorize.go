@@ -5,7 +5,9 @@
 package server
 
 import (
+	"bytes"
 	"crypto/rand"
+	"encoding/base64"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -22,7 +24,9 @@ import (
 )
 
 func (s *Server) authorize(writer http.ResponseWriter, request *http.Request, profileID string) {
-	authReq, err := newClientAuthRequest(s.indieauthCookieName, request)
+	encodedState := request.URL.Query().Get("state")
+
+	authReq, err := s.getClientAuthRequest(&encodedState, request.URL.Query())
 	if err != nil {
 		sendServerError(
 			writer,
@@ -101,6 +105,7 @@ func (s *Server) authorize(writer http.ResponseWriter, request *http.Request, pr
 		ProfileID         string
 		AcceptURI         string
 		RejectURI         string
+		State             string
 		Scopes            []string
 	}{
 		ClientID:          clientMetadata.ClientID,
@@ -110,6 +115,7 @@ func (s *Server) authorize(writer http.ResponseWriter, request *http.Request, pr
 		ClientRedirectURI: authReq.RedirectURI,
 		AcceptURI:         s.authPath + "/accept",
 		RejectURI:         s.authPath + "/reject",
+		State:             encodedState,
 		Scopes:            authReq.Scope,
 	}
 
@@ -122,8 +128,6 @@ func (s *Server) authorize(writer http.ResponseWriter, request *http.Request, pr
 }
 
 func (s *Server) authorizeRedirectToLogin(writer http.ResponseWriter, request *http.Request) {
-	profileID := request.URL.Query().Get("me")
-
 	authRequest, err := newClientAuthRequestFromQuery(request.URL.Query())
 	if err != nil {
 		sendClientError(
@@ -135,36 +139,21 @@ func (s *Server) authorizeRedirectToLogin(writer http.ResponseWriter, request *h
 		return
 	}
 
-	encodedAuthRequest, err := utilities.GobBase64Encode(authRequest)
+	encodedState, err := s.addClientAuthRequestToCache(authRequest)
 	if err != nil {
 		sendServerError(
 			writer,
-			fmt.Errorf("error encoding the client authorized request to gob data: %w", err),
+			fmt.Errorf("error adding the client auth request to cache: %w", err),
 		)
-
-		return
 	}
 
-	expiry := 10 * time.Minute
-
-	cookie := http.Cookie{
-		Name:     s.indieauthCookieName,
-		Value:    encodedAuthRequest,
-		Path:     "/",
-		MaxAge:   int(expiry.Seconds()),
-		Quoted:   false,
-		Domain:   s.domainName,
-		Secure:   true,
-		HttpOnly: true,
-		SameSite: http.SameSiteStrictMode,
-	}
-
-	http.SetCookie(writer, &cookie)
+	profileID := authRequest.Me
 
 	redirectURL := fmt.Sprintf(
-		"/profile/login?login_type=%s&profile_id=%s",
+		"/profile/login?login_type=%s&profile_id=%s&state=%s",
 		loginTypeIndieauth,
 		url.QueryEscape(profileID),
+		encodedState,
 	)
 
 	http.Redirect(writer, request, redirectURL, http.StatusSeeOther)
@@ -180,7 +169,19 @@ type clientRequestData struct {
 }
 
 func (s *Server) authorizeAccept(writer http.ResponseWriter, request *http.Request, profileID string) {
-	authReq, err := newClientAuthRequest(s.indieauthCookieName, request)
+	if err := request.ParseForm(); err != nil {
+		sendClientError(
+			writer,
+			http.StatusBadRequest,
+			fmt.Errorf("error parsing the form: %w", err),
+		)
+
+		return
+	}
+
+	encodedState := request.PostFormValue("state")
+
+	authReq, err := s.getClientAuthRequest(&encodedState, request.URL.Query())
 	if err != nil {
 		sendClientError(
 			writer,
@@ -245,7 +246,19 @@ func (s *Server) authorizeAccept(writer http.ResponseWriter, request *http.Reque
 }
 
 func (s *Server) authorizeReject(writer http.ResponseWriter, request *http.Request, _ string) {
-	authReq, err := newClientAuthRequest(s.indieauthCookieName, request)
+	if err := request.ParseForm(); err != nil {
+		sendClientError(
+			writer,
+			http.StatusBadRequest,
+			fmt.Errorf("error parsing the form: %w", err),
+		)
+
+		return
+	}
+
+	encodedState := request.PostFormValue("state")
+
+	authReq, err := s.getClientAuthRequest(&encodedState, request.URL.Query())
 	if err != nil {
 		sendClientError(
 			writer,
@@ -265,7 +278,7 @@ func (s *Server) authorizeReject(writer http.ResponseWriter, request *http.Reque
 	writer.Header().Add("HX-Redirect", redirectURL)
 }
 
-func (s *Server) profileExchange(writer http.ResponseWriter, request *http.Request, data clientRequestData) {
+func (s *Server) profileExchange(writer http.ResponseWriter, data clientRequestData) {
 	// Get the profile information if requested.
 	profile := make(map[string]string)
 
@@ -304,7 +317,7 @@ func (s *Server) profileExchange(writer http.ResponseWriter, request *http.Reque
 	sendJSONResponse(writer, http.StatusOK, response)
 }
 
-func (s *Server) tokenExchange(writer http.ResponseWriter, request *http.Request, data clientRequestData) {
+func (s *Server) tokenExchange(writer http.ResponseWriter, data clientRequestData) {
 	var err error
 
 	// Create the access token.
@@ -377,35 +390,45 @@ type clientAuthRequest struct {
 	State               string
 }
 
-func newClientAuthRequest(cookieName string, request *http.Request) (clientAuthRequest, error) {
-	cookie, err := request.Cookie(cookieName)
-	if err != nil {
-		if errors.Is(err, http.ErrNoCookie) {
-			authReq, err := newClientAuthRequestFromQuery(request.URL.Query())
-			if err != nil {
-				return clientAuthRequest{}, fmt.Errorf(
-					"unable to create the client authorization request: %w",
-					err,
-				)
-			}
-
-			return authReq, nil
-		}
-
-		return clientAuthRequest{}, fmt.Errorf("unable to retrieve the cookie: %w", err)
+// getClientAuthRequest attempts to retrieve the client's authorization request from cache. If this is not found
+// the it attempts to create the request from the HTTP request's query.
+func (s *Server) getClientAuthRequest(encodedState *string, queryValues url.Values) (clientAuthRequest, error) {
+	authReq, err := s.getClientAuthRequestFromCache(*encodedState)
+	if err == nil {
+		return authReq, nil
 	}
 
-	var authReq clientAuthRequest
-	if err := utilities.GobBase64Decode(cookie.Value, &authReq); err != nil {
+	notFoundErr := StateKeyNotFoundInCacheError{}
+	if !errors.As(err, &notFoundErr) {
 		return clientAuthRequest{}, fmt.Errorf(
-			"error decoding the client's authorize request from cookie: %w",
+			"unexpected error received after attempting to get the client authorization request from cache: %w",
 			err,
 		)
 	}
 
+	authReq, err = newClientAuthRequestFromQuery(queryValues)
+	if err != nil {
+		return clientAuthRequest{}, fmt.Errorf(
+			"error creating the client authorization request: %w",
+			err,
+		)
+	}
+
+	encodedStateFromCache, err := s.addClientAuthRequestToCache(authReq)
+	if err != nil {
+		return clientAuthRequest{}, fmt.Errorf(
+			"error adding the client authorization request to the cache: %w",
+			err,
+		)
+	}
+
+	*encodedState = encodedStateFromCache
+
 	return authReq, nil
 }
 
+// newClientAuthRequestFromQuery extracts the client's authorization request from the HTTP request's
+// query. An error is returned if one of the required parameters is missing from the query.
 func newClientAuthRequestFromQuery(queryValues url.Values) (clientAuthRequest, error) {
 	const (
 		clientID            = "client_id"
@@ -443,6 +466,42 @@ func newClientAuthRequestFromQuery(queryValues url.Values) (clientAuthRequest, e
 		ResponseType:        queryValues.Get(responseType),
 		Scope:               strings.Split(queryValues.Get(scope), " "),
 		State:               queryValues.Get(state),
+	}
+
+	return request, nil
+}
+
+// addClientAuthRequestToCache adds the client's authorize request to cache. The value of the state
+// is encoded using Base64 URL encoding and is used as the key to access the associated request.
+// After the data is added to the cache, the encoded state value is returned to the caller.
+func (s *Server) addClientAuthRequestToCache(request clientAuthRequest) (string, error) {
+	encodedState := base64.URLEncoding.EncodeToString([]byte(request.State))
+
+	if _, exists := s.cache.Get(encodedState); exists {
+		return "", ExistingStateKeyInCacheError{encodedState: encodedState}
+	}
+
+	requestBytes, err := utilities.GobEncode(request)
+	if err != nil {
+		return "", fmt.Errorf("error gob encoding the client auth request: %w", err)
+	}
+
+	s.cache.Add(encodedState, requestBytes, time.Now().Add(10*time.Minute))
+
+	return encodedState, nil
+}
+
+// getClientAuthRequestFromCache attempts to retrieve the client's authorization request from the cache.
+func (s *Server) getClientAuthRequestFromCache(encodedState string) (clientAuthRequest, error) {
+	cachedRequest, exists := s.cache.Get(encodedState)
+	if !exists {
+		return clientAuthRequest{}, StateKeyNotFoundInCacheError{encodedState: encodedState}
+	}
+
+	var request clientAuthRequest
+
+	if err := utilities.GobDecode(bytes.NewBuffer(cachedRequest.Value()), &request); err != nil {
+		return clientAuthRequest{}, fmt.Errorf("error gob decoding the client auth request: %w", err)
 	}
 
 	return request, nil

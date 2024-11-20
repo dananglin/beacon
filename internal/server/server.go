@@ -5,6 +5,7 @@
 package server
 
 import (
+	"embed"
 	"fmt"
 	"io/fs"
 	"log/slog"
@@ -18,24 +19,34 @@ import (
 	bolt "go.etcd.io/bbolt"
 )
 
+const (
+	templatesFSDir = "ui/templates"
+	staticFSDir    = "ui/static"
+)
+
+//go:embed ui/templates/*
+var templatesFS embed.FS
+
+//go:embed ui/static/*
+var staticFS embed.FS
+
 type (
 	profileHandlerFunc  func(writer http.ResponseWriter, request *http.Request, profileID string)
-	exchangeHandlerFunc func(writer http.ResponseWriter, request *http.Request, data clientRequestData)
+	exchangeHandlerFunc func(writer http.ResponseWriter, data clientRequestData)
 
 	Server struct {
-		httpServer          *http.Server
-		boltdb              *bolt.DB
-		cache               *cache.Cache
-		dbInitialized       bool
-		domainName          string
-		jwtSecret           string
-		jwtCookieName       string
-		indieauthCookieName string
-		authPath            string
-		authEndpoint        string
-		issuer              string
-		tokenEndpoint       string
-		tokenPath           string
+		httpServer    *http.Server
+		boltdb        *bolt.DB
+		cache         *cache.Cache
+		dbInitialized bool
+		domainName    string
+		jwtSecret     string
+		jwtCookieName string
+		authPath      string
+		authEndpoint  string
+		issuer        string
+		tokenEndpoint string
+		tokenPath     string
 	}
 )
 
@@ -58,17 +69,16 @@ func NewServer(configPath string) (*Server, error) {
 			Addr:              fmt.Sprintf("%s:%d", cfg.BindAddress, cfg.Port),
 			ReadHeaderTimeout: 1 * time.Second,
 		},
-		boltdb:              boltdb,
-		cache:               cache.NewCache(1 * time.Minute),
-		domainName:          cfg.Domain,
-		jwtSecret:           cfg.JWT.Secret,
-		jwtCookieName:       "beacon_is_great",
-		authPath:            authPath,
-		authEndpoint:        fmt.Sprintf("https://%s%s", cfg.Domain, authPath),
-		indieauthCookieName: "indieauth_is_great",
-		issuer:              fmt.Sprintf("https://%s/", cfg.Domain),
-		tokenPath:           tokenPath,
-		tokenEndpoint:       fmt.Sprintf("https://%s%s", cfg.Domain, tokenPath),
+		boltdb:        boltdb,
+		cache:         cache.NewCache(1 * time.Minute),
+		domainName:    cfg.Domain,
+		jwtSecret:     cfg.JWT.Secret,
+		jwtCookieName: "beacon_is_great",
+		authPath:      authPath,
+		authEndpoint:  fmt.Sprintf("https://%s%s", cfg.Domain, authPath),
+		issuer:        fmt.Sprintf("https://%s/", cfg.Domain),
+		tokenPath:     tokenPath,
+		tokenEndpoint: fmt.Sprintf("https://%s%s", cfg.Domain, tokenPath),
 	}
 
 	dbInitialized, err := database.Initialized(server.boltdb)

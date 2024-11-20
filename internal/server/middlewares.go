@@ -248,7 +248,7 @@ func (s *Server) exchangeAuthorization(exchange exchangeHandlerFunc) http.Handle
 		}
 
 		// The client is now authorized to complete the required exchange.
-		exchange(writer, request, initialClientAuthReq)
+		exchange(writer, initialClientAuthReq)
 
 		// Delete the code and associated data from the cache
 		// to ensure that is doesn't get used again.

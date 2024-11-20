@@ -26,6 +26,7 @@ type formLogin struct {
 	Password              string
 	FieldErrors           map[string]string
 	LoginType             string
+	State                 string
 }
 
 func (f *formLogin) validate() bool {
@@ -49,6 +50,7 @@ func (s *Server) getLoginForm(writer http.ResponseWriter, request *http.Request)
 	}
 
 	profileID := request.URL.Query().Get("profile_id")
+	state := request.URL.Query().Get("state")
 
 	form := formLogin{
 		AuthenticationFailure: false,
@@ -56,6 +58,7 @@ func (s *Server) getLoginForm(writer http.ResponseWriter, request *http.Request)
 		Password:              "",
 		FieldErrors:           make(map[string]string),
 		LoginType:             loginType,
+		State:                 state,
 	}
 
 	generateAndSendHTMLResponse(
@@ -83,6 +86,7 @@ func (s *Server) authenticate(writer http.ResponseWriter, request *http.Request)
 		Password:              request.PostFormValue("password"),
 		FieldErrors:           make(map[string]string),
 		LoginType:             request.PostFormValue("loginType"),
+		State:                 request.PostFormValue("state"),
 	}
 
 	if validForm := form.validate(); !validForm {
@@ -167,7 +171,7 @@ func (s *Server) authenticate(writer http.ResponseWriter, request *http.Request)
 
 	redirectMap := map[string]string{
 		loginTypeProfile:   "/profile/overview",
-		loginTypeIndieauth: s.authPath,
+		loginTypeIndieauth: fmt.Sprintf("%s?state=%s", s.authPath, form.State),
 	}
 
 	redirectURL, ok := redirectMap[form.LoginType]

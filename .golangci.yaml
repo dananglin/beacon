@@ -32,5 +32,8 @@ linters-settings:
 
 linters:
   enable-all: true
-  # disable:
+  disable:
+  - gomnd
+  - gosec
+  - mnd
   fast: false

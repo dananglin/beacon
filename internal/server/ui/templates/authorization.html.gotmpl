@@ -12,36 +12,38 @@
     </head>
 
     <body>
+	<input type="hidden", name="state", value="{{ .State }}", id="state">
+
         <h1>Sign in to {{ .ClientID }}</h1>
 
         <p>
 	{{- if and (ne .ClientName "") (ne .ClientURI "") -}}
         <a href="{{ .ClientURI }}">{{ .ClientName }}</a>
-	{{- else -}}
+        {{- else -}}
         <a href="{{ .ClientID }}">{{ .ClientID }}</a>
-	{{- end -}}
-	{{ print "" }}
-	is requesting that you sign in to their app as</p>
+        {{- end -}}
+        {{ print "" }}
+        is requesting that you sign in to their app as</p>
 
-	<p><b>{{ .ProfileID }}</b></p>
+        <p><b>{{ .ProfileID }}</b></p>
 
-	{{ if gt (len .Scopes) 0 }}
-	<p>The following scopes are included in this request:</p>
-	<ul>
+        {{ if gt (len .Scopes) 0 }}
+        <p>The following scopes are included in this request:</p>
+        <ul>
 	    {{ range $scope := .Scopes }}
 	    <li>{{ $scope }}</li>
-	    {{ end }}
-	</ul>
-	{{ end }}
+            {{ end }}
+        </ul>
+        {{ end }}
 
         <p>Select <b>Accept</b> to sign in, or <b>Reject</b> to reject the request.</p>
         <p>You will be redirected to {{ .ClientRedirectURI }}</p>
 
-        <button hx-post="{{ .AcceptURI }}" hx-trigger="click" hx-swap="none">
+        <button hx-post="{{ .AcceptURI }}" hx-trigger="click" hx-swap="none", hx-include="#state">
             Accept
         </button>
 
-        <button hx-post="{{ .RejectURI }}" hx-trigger="click" hx-swap="none">
+        <button hx-post="{{ .RejectURI }}" hx-trigger="click" hx-swap="none", hx-include="#state">
             Reject
         </button>
     </body>
