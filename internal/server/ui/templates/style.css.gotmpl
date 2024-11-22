@@ -1,0 +1,128 @@
+{{ define "style.css" }}
+:root {
+    --default-background-color: Cornsilk;
+    --default-border-color: DarkSlateGrey;
+    --button-hover-color: MediumSeaGreen;
+}
+body {
+    background-color: var(--default-background-color);
+    font-family: sans-serif;
+    font-size: 18px;
+}
+h1 {
+    text-align: center;
+    margin-top: 50px;
+    margin-bottom: 100px;
+    font-size: 48px;
+}
+div.base {
+    margin: auto;
+    width: 50%;
+}
+div.profile_id {
+  text-align: center;
+  font-size: 24px;
+  margin-bottom: 50px;
+  border-style: solid none solid none;
+  border-color: var(--default-border-color);
+  border-width: 1px;
+  background-color: BurlyWood;
+  box-shadow:
+    inset 0px 11px 10px -10px SaddleBrown,
+    inset 0px -11px 10px -10px SaddleBrown;
+}
+div.error {
+    background-color: DarkRed;
+    color: White;
+    border-radius: 4px;
+    font-size: 20px;
+    text-align: center;
+    margin-bottom: 20px;
+    padding: 5px;
+}
+label.field {
+    font-size: 24px;
+    color: DarkSlateGrey;
+}
+label.error {
+    color: Red;
+    font-size: 16px;
+    font-style: italic;
+}
+input {
+    width: 100%;
+    padding: 10px 0px;
+    box-sizing: border-box;
+    font-size: 18px;
+}
+input[type=text],
+input[type=password],
+input[type=url],
+input[type=email] {
+    background-color: var(--default-background-color);
+    border-style: none none solid none;
+    border-color: var(--default-border-color);
+    border-radius: 0px;
+    border-width: 1px;
+    margin-bottom: 30px;
+    outline: none;
+}
+input[type=text]:focus,
+input[type=password]:focus,
+input[type=url]:focus,
+input[type=email]:focus {
+    border-color: MediumSeaGreen;
+}
+input[type=submit] {
+    background-color: DarkSlateGrey;
+    border: none;
+    border-radius: 5px;
+    color: white;
+    padding: 10px 10px;
+    margin: 10px 0;
+    cursor: pointer;
+    font-size: 20px;
+    transition-duration: 0.5s;
+}
+input[type=submit]:hover,
+input[type=submit]:focus {
+    background-color: var(--button-hover-color);
+}
+a:link {
+    text-decoration: none;
+}
+button.authorize_buttons {
+    border: none;
+    border-radius: 5px;
+    color: white;
+    padding: 10px 10px;
+    margin: 10px 0;
+    font-size: 20px;
+    width: 45%;
+    cursor: pointer;
+    transition-duration: 0.5s;
+}
+#accept {
+    background-color: DarkSlateGrey;
+    float: left;
+}
+#accept:hover {
+    background-color: var(--button-hover-color);
+}
+#reject {
+    background-color: DarkRed;
+    float: right;
+}
+#reject:hover {
+    background-color: LightCoral;
+}
+span.highlight {
+    font-family: monospace;
+    font-size: 16px;
+    font-weight: 700;
+    background-color: NavajoWhite;
+    padding: 1px 5px;
+    border: none;
+    border-radius: 5px;
+}
+{{ end }}

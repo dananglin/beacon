@@ -97,7 +97,7 @@ func (s *Server) authorize(writer http.ResponseWriter, request *http.Request, pr
 		return
 	}
 
-	clientRequest := struct {
+	dataForHTML := struct {
 		ClientID          string
 		ClientName        string
 		ClientURI         string
@@ -123,7 +123,7 @@ func (s *Server) authorize(writer http.ResponseWriter, request *http.Request, pr
 		writer,
 		"authorization",
 		http.StatusOK,
-		clientRequest,
+		dataForHTML,
 	)
 }
 

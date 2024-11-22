@@ -7,45 +7,52 @@
 <html lang="en">
     <head>
         <meta charset="UTF-8">
-        <title>Beacon | Authorization</title>
+        <title>Authorization - Beacon</title>
         <script src="/static/htmx/htmx.min.js"></script>
+        <style>
+            {{ template "style.css" . }}
+        </style>
     </head>
 
     <body>
-	<input type="hidden", name="state", value="{{ .State }}", id="state">
+        <input type="hidden", name="state", value="{{ .State }}", id="state">
 
         <h1>Sign in to {{ .ClientID }}</h1>
 
+        <div class="base">
         <p>
-	{{- if and (ne .ClientName "") (ne .ClientURI "") -}}
+        {{- if and (ne .ClientName "") (ne .ClientURI "") -}}
         <a href="{{ .ClientURI }}">{{ .ClientName }}</a>
         {{- else -}}
         <a href="{{ .ClientID }}">{{ .ClientID }}</a>
         {{- end -}}
         {{ print "" }}
         is requesting that you sign in to their app as</p>
+        </div>
 
-        <p><b>{{ .ProfileID }}</b></p>
+        <div class="base profile_id"><p>https://dananglin.dev.private/</p></div>
 
+        <div class="base">
         {{ if gt (len .Scopes) 0 }}
         <p>The following scopes are included in this request:</p>
         <ul>
-	    {{ range $scope := .Scopes }}
-	    <li>{{ $scope }}</li>
+            {{ range $scope := .Scopes }}
+            <li>{{ $scope }}</li>
             {{ end }}
         </ul>
         {{ end }}
 
-        <p>Select <b>Accept</b> to sign in, or <b>Reject</b> to reject the request.</p>
-        <p>You will be redirected to {{ .ClientRedirectURI }}</p>
+        <p>Select <span class="highlight">Accept</span> to sign in, or <span class="highlight">Reject</span> to reject the request.</p>
+        <p>You will be redirected to <span class="highlight">{{ .ClientRedirectURI }}</span></p>
 
-        <button hx-post="{{ .AcceptURI }}" hx-trigger="click" hx-swap="none", hx-include="#state">
+        <button class="authorize_buttons" id="accept" hx-post="{{ .AcceptURI }}" hx-trigger="click" hx-swap="none", hx-include="#state">
             Accept
         </button>
 
-        <button hx-post="{{ .RejectURI }}" hx-trigger="click" hx-swap="none", hx-include="#state">
+        <button class="authorize_buttons" id="reject" hx-post="{{ .RejectURI }}" hx-trigger="click" hx-swap="none", hx-include="#state">
             Reject
         </button>
+        </div>
     </body>
 </html>
 {{ end }}
