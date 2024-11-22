@@ -30,7 +30,8 @@ type Database struct {
 }
 
 type JWT struct {
-	Secret string `json:"secret"`
+	Secret     string `json:"secret"`
+	CookieName string `json:"cookieName"`
 }
 
 func NewConfig(path string) (Config, error) {

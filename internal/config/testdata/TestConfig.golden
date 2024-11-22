@@ -6,6 +6,7 @@
       "path": "/app/data/indieauth.db"
     },
     "jwt": {
-      "secret": "N4N6Zpwq6tCHR3CcvHmnUynQhU6R6dk0wfi3kFV1o9I0OV6l53xRxQlvQA76aYgP"
+      "secret": "N4N6Zpwq6tCHR3CcvHmnUynQhU6R6dk0wfi3kFV1o9I0OV6l53xRxQlvQA76aYgP",
+      "cookieName": "my_jwt_cookie"
     }
 }

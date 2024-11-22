@@ -16,12 +16,14 @@ import (
 	"codeflow.dananglin.me.uk/apollo/beacon/internal/config"
 	"codeflow.dananglin.me.uk/apollo/beacon/internal/database"
 	"codeflow.dananglin.me.uk/apollo/beacon/internal/info"
+	"codeflow.dananglin.me.uk/apollo/beacon/internal/utilities"
 	bolt "go.etcd.io/bbolt"
 )
 
 const (
-	templatesFSDir = "ui/templates"
-	staticFSDir    = "ui/static"
+	templatesFSDir    = "ui/templates"
+	staticFSDir       = "ui/static"
+	defaultCookieName = "beacon_is_great"
 )
 
 //go:embed ui/templates/*
@@ -61,6 +63,16 @@ func NewServer(configPath string) (*Server, error) {
 		return nil, fmt.Errorf("unable to open the database: %w", err)
 	}
 
+	// get the name of the JWT cookie name and validate
+	cookieName := defaultCookieName
+	if cfg.JWT.CookieName != "" {
+		cookieName = cfg.JWT.CookieName
+	}
+
+	if err := utilities.ValidateCookieName(cookieName); err != nil {
+		return nil, fmt.Errorf("error validating the cookie name: %w", err)
+	}
+
 	authPath := "/indieauth/authorize"
 	tokenPath := "/indieauth/token" // #nosec G101 -- This is not hardcoded credentials.
 
@@ -73,7 +85,7 @@ func NewServer(configPath string) (*Server, error) {
 		cache:         cache.NewCache(1 * time.Minute),
 		domainName:    cfg.Domain,
 		jwtSecret:     cfg.JWT.Secret,
-		jwtCookieName: "beacon_is_great",
+		jwtCookieName: cookieName,
 		authPath:      authPath,
 		authEndpoint:  fmt.Sprintf("https://%s%s", cfg.Domain, authPath),
 		issuer:        fmt.Sprintf("https://%s/", cfg.Domain),

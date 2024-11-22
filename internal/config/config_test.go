@@ -13,6 +13,8 @@ import (
 )
 
 func TestConfig(t *testing.T) {
+	t.Parallel()
+
 	want := config.Config{
 		BindAddress: "127.0.0.1",
 		Port:        443,
@@ -21,7 +23,8 @@ func TestConfig(t *testing.T) {
 			Path: "/app/data/indieauth.db",
 		},
 		JWT: config.JWT{
-			Secret: "N4N6Zpwq6tCHR3CcvHmnUynQhU6R6dk0wfi3kFV1o9I0OV6l53xRxQlvQA76aYgP",
+			Secret:     "N4N6Zpwq6tCHR3CcvHmnUynQhU6R6dk0wfi3kFV1o9I0OV6l53xRxQlvQA76aYgP",
+			CookieName: "my_jwt_cookie",
 		},
 	}
 
