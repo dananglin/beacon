@@ -33,6 +33,13 @@
                     <input type="password" name="password"><br />
                 </div>
                 <div>
+                    <label class="field">Confirm password</label><br />
+                    {{ with .FieldErrors.ConfirmedPassword }}
+                    <label class="error">{{ . }}</label><br />
+                    {{ end }}
+                    <input type="password" name="confirmedPassword">
+                </div>
+                <div>
                     <label class="field">Profile display name</label><br />
                     <input type="text" name="profileDisplayName" value="{{ .Profile.DisplayName }}"><br />
                 </div>

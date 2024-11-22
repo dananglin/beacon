@@ -58,10 +58,11 @@ func (s *Server) setup(writer http.ResponseWriter, request *http.Request) {
 }
 
 func (s *Server) getSetupForm(writer http.ResponseWriter, _ *http.Request) {
-	form := formProfile{
-		ProfileID: "",
-		Password:  "",
-		Profile: formProfileInfo{
+	form := setupForm{
+		ProfileID:         "",
+		Password:          "",
+		ConfirmedPassword: "",
+		Profile: setupFormProfile{
 			DisplayName: "",
 			URL:         "",
 			Email:       "",
@@ -89,10 +90,11 @@ func (s *Server) setupAccount(writer http.ResponseWriter, request *http.Request)
 		return
 	}
 
-	form := formProfile{
-		ProfileID: request.PostFormValue("profileID"),
-		Password:  request.PostFormValue("password"),
-		Profile: formProfileInfo{
+	form := setupForm{
+		ProfileID:         request.PostFormValue("profileID"),
+		Password:          request.PostFormValue("password"),
+		ConfirmedPassword: request.PostFormValue("confirmedPassword"),
+		Profile: setupFormProfile{
 			DisplayName: request.PostFormValue("profileDisplayName"),
 			URL:         request.PostFormValue("profileURL"),
 			PhotoURL:    request.PostFormValue("profilePhotoURL"),
@@ -166,35 +168,40 @@ func (s *Server) setupAccount(writer http.ResponseWriter, request *http.Request)
 	http.Redirect(writer, request, "/profile/login", http.StatusSeeOther)
 }
 
-type formProfile struct {
-	ProfileID   string
-	Password    string
-	Profile     formProfileInfo
-	FieldErrors map[string]string
+type setupForm struct {
+	ProfileID         string
+	Password          string
+	ConfirmedPassword string
+	Profile           setupFormProfile
+	FieldErrors       map[string]string
 }
 
-type formProfileInfo struct {
+type setupFormProfile struct {
 	DisplayName string
 	URL         string
 	Email       string
 	PhotoURL    string
 }
 
-func (f *formProfile) validate() bool {
+func (f *setupForm) validate() bool {
 	f.FieldErrors = make(map[string]string)
 
-	canonicalisedWebsite, err := utilities.ValidateAndCanonicalizeURL(strings.TrimSpace(f.ProfileID))
+	canonicalisedProfielID, err := utilities.ValidateAndCanonicalizeURL(strings.TrimSpace(f.ProfileID))
 	if err != nil {
-		slog.Error("profile website validation failed", "error", err.Error())
+		slog.Error("profile ID validation failed", "error", err.Error())
 
-		f.FieldErrors["ProfileID"] = "Please enter a valid website"
+		f.FieldErrors["ProfileID"] = "Please enter a valid domain or website"
 	} else {
-		f.ProfileID = canonicalisedWebsite
+		f.ProfileID = canonicalisedProfielID
 	}
 
 	minPasswordLength := 8
 	if utf8.RuneCountInString(f.Password) < minPasswordLength {
 		f.FieldErrors["Password"] = "The password must be at least 8 characters long"
+	}
+
+	if f.Password != f.ConfirmedPassword {
+		f.FieldErrors["ConfirmedPassword"] = "Your passwords do not match"
 	}
 
 	return len(f.FieldErrors) == 0
