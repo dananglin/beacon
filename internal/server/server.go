@@ -130,7 +130,7 @@ func (s *Server) setupRouter() error {
 	mux.Handle("GET /setup", http.HandlerFunc(s.setup))
 	mux.Handle("POST /setup", http.HandlerFunc(s.setup))
 	mux.Handle("GET /static/", http.StripPrefix("/static", neuter(fileServer)))
-	mux.Handle("GET /{$}", s.entrypoint(http.HandlerFunc(rootRedirect)))
+	mux.Handle("GET /{$}", s.entrypoint(s.profileAuthorization(rootRedirect, s.profileRedirectToLogin)))
 	mux.Handle("GET /.well-known/oauth-authorization-server", s.entrypoint(http.HandlerFunc(s.getMetadata)))
 	mux.Handle("GET /profile/login", s.entrypoint(http.HandlerFunc(s.getLoginForm)))
 	mux.Handle("POST /profile/login", s.entrypoint(http.HandlerFunc(s.authenticate)))
@@ -148,6 +148,6 @@ func (s *Server) setupRouter() error {
 	return nil
 }
 
-func rootRedirect(writer http.ResponseWriter, request *http.Request) {
-	http.Redirect(writer, request, "/profile/login", http.StatusSeeOther)
+func rootRedirect(writer http.ResponseWriter, request *http.Request, _ string) {
+	http.Redirect(writer, request, "/profile/overview", http.StatusSeeOther)
 }
