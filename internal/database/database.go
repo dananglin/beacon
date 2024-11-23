@@ -41,7 +41,7 @@ func Open(path string) (*bolt.DB, error) {
 // writing the first profile to that bucket.
 func Setup(boltdb *bolt.DB, profileID string, profile Profile) error {
 	if err := boltdb.Update(func(tx *bolt.Tx) error {
-		bucket := getBucketName(profilesBucketName)
+		bucket := getBucketName()
 		if _, err := tx.CreateBucket(bucket); err != nil {
 			return fmt.Errorf(
 				"unable to create the bucket %q: %w",
@@ -69,7 +69,7 @@ func Initialized(boltdb *bolt.DB) (bool, error) {
 	initialized := false
 
 	if err := boltdb.View(func(tx *bolt.Tx) error {
-		bucket := tx.Bucket(getBucketName(profilesBucketName))
+		bucket := tx.Bucket(getBucketName())
 		if bucket == nil {
 			return nil
 		}

@@ -95,7 +95,7 @@ input[type=submit]:focus {
 a:link {
     text-decoration: none;
 }
-button.authorize_buttons {
+button {
     border: none;
     border-radius: 5px;
     color: white;
@@ -106,16 +106,24 @@ button.authorize_buttons {
     cursor: pointer;
     transition-duration: 0.5s;
 }
-#accept {
-    background-color: DarkSlateGrey;
+button.left_btn {
     float: left;
 }
-#accept:hover {
+button.right_btn {
+    float: right;
+}
+#accept,
+#update_profile,
+#logout {
+    background-color: DarkSlateGrey;
+}
+#accept:hover,
+#update_profile:hover,
+#logout:hover {
     background-color: var(--button-hover-color);
 }
 #reject {
     background-color: DarkRed;
-    float: right;
 }
 #reject:hover {
     background-color: LightCoral;

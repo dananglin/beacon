@@ -45,11 +45,11 @@
         <p>Select <span class="highlight">Accept</span> to sign in, or <span class="highlight">Reject</span> to reject the request.</p>
         <p>You will be redirected to <span class="highlight">{{ .ClientRedirectURI }}</span></p>
 
-        <button class="authorize_buttons" id="accept" hx-post="{{ .AcceptURI }}" hx-trigger="click" hx-swap="none", hx-include="#state">
+        <button class="left_btn" id="accept" hx-post="{{ .AcceptURI }}" hx-trigger="click" hx-swap="none", hx-include="#state">
             Accept
         </button>
 
-        <button class="authorize_buttons" id="reject" hx-post="{{ .RejectURI }}" hx-trigger="click" hx-swap="none", hx-include="#state">
+        <button class="right_btn" id="reject" hx-post="{{ .RejectURI }}" hx-trigger="click" hx-swap="none", hx-include="#state">
             Reject
         </button>
         </div>

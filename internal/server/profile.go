@@ -76,6 +76,19 @@ func (s *Server) updateProfileInformation(writer http.ResponseWriter, request *h
 	http.Redirect(writer, request, "/profile/overview", http.StatusSeeOther)
 }
 
+func (s *Server) logout(writer http.ResponseWriter, request *http.Request, profileID string) {
+	if err := database.IncrementTokenVersion(s.boltdb, profileID); err != nil {
+		sendServerError(
+			writer,
+			fmt.Errorf("error incrementing the profile's token version: %w", err),
+		)
+
+		return
+	}
+
+	http.Redirect(writer, request, "/profile/login", http.StatusSeeOther)
+}
+
 func (s *Server) profileRedirectToLogin(writer http.ResponseWriter, request *http.Request) {
 	redirectURL := "/profile/login?login_type=" + loginTypeProfile
 

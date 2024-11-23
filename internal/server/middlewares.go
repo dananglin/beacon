@@ -82,6 +82,12 @@ func (s *Server) profileAuthorization(next profileHandlerFunc, redirectToLogin h
 
 		data, err := auth.ValidateJWT(token, s.jwtSecret)
 		if err != nil {
+			if redirectToLogin != nil {
+				redirectToLogin(writer, request)
+
+				return
+			}
+
 			sendClientError(
 				writer,
 				http.StatusUnauthorized,
@@ -113,6 +119,12 @@ func (s *Server) profileAuthorization(next profileHandlerFunc, redirectToLogin h
 		}
 
 		if profileTokenVersion != data.TokenVersion {
+			if redirectToLogin != nil {
+				redirectToLogin(writer, request)
+
+				return
+			}
+
 			sendClientError(
 				writer,
 				http.StatusUnauthorized,

@@ -132,30 +132,6 @@ func testProfile(boltdb *bolt.DB, testName string) func(t *testing.T) {
 			)
 		}
 
-		gotTokenVersion, err := database.GetProfileTokenVersion(boltdb, profileID)
-		if err != nil {
-			t.Fatalf(
-				"FAILED test %s: Unable to get the profile's token version from the database: %v",
-				testName,
-				err,
-			)
-		} else {
-			t.Logf("Successfully received the profile's token version from the database.")
-		}
-
-		if gotTokenVersion != 0 {
-			t.Errorf(
-				"FAILED test %s: Unexpected token version received from the database: want 0, got %d",
-				testName,
-				gotTokenVersion,
-			)
-		} else {
-			t.Logf(
-				"Expected token version received from the database: got %d",
-				gotTokenVersion,
-			)
-		}
-
 		t.Log("Updating the profile's information")
 
 		newProfileInformation := database.ProfileInformation{
@@ -200,6 +176,44 @@ func testProfile(boltdb *bolt.DB, testName string) func(t *testing.T) {
 			t.Errorf(
 				"FAILED test %s: The profile's 'UpdatedAt' field has not been updated",
 				testName,
+			)
+		} else {
+			t.Log("The profile's 'UpdatedAt' field has been updated.")
+		}
+
+		t.Log("Incrementing the token's profile version by one.")
+
+		if err := database.IncrementTokenVersion(boltdb, profileID); err != nil {
+			t.Fatalf(
+				"FAILED test %s: Received an error after attempting to increment the profile's token version.\ngot: %q",
+				testName,
+				err.Error(),
+			)
+		} else {
+			t.Log("Successfully incremented the profile's token version.")
+		}
+
+		gotTokenVersion, err := database.GetProfileTokenVersion(boltdb, profileID)
+		if err != nil {
+			t.Fatalf(
+				"FAILED test %s: Unable to get the profile's token version from the database: %v",
+				testName,
+				err,
+			)
+		} else {
+			t.Logf("Successfully received the profile's token version from the database.")
+		}
+
+		if gotTokenVersion != 1 {
+			t.Errorf(
+				"FAILED test %s: Unexpected token version received from the database: want 1, got %d",
+				testName,
+				gotTokenVersion,
+			)
+		} else {
+			t.Logf(
+				"Expected token version received from the database: got %d.",
+				gotTokenVersion,
 			)
 		}
 	}

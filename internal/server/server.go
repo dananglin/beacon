@@ -136,6 +136,7 @@ func (s *Server) setupRouter() error {
 	mux.Handle("POST /profile/login", s.entrypoint(http.HandlerFunc(s.authenticate)))
 	mux.Handle("GET /profile/overview", s.entrypoint(s.profileAuthorization(s.getOverviewPage, s.profileRedirectToLogin)))
 	mux.Handle("POST /profile/overview", s.entrypoint(s.profileAuthorization(s.updateProfileInformation, s.profileRedirectToLogin)))
+	mux.Handle("POST /profile/logout", s.entrypoint(s.profileAuthorization(s.logout, s.profileRedirectToLogin)))
 	mux.Handle("GET "+s.authPath, s.entrypoint(s.profileAuthorization(s.authorize, s.authorizeRedirectToLogin)))
 	mux.Handle("POST "+s.authPath, s.entrypoint(s.exchangeAuthorization(s.profileExchange)))
 	mux.Handle("POST "+s.authPath+"/accept", s.entrypoint(s.profileAuthorization(s.authorizeAccept, nil)))
