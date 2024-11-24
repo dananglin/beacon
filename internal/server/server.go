@@ -64,6 +64,7 @@ func NewServer(configPath string) (*Server, error) {
 	}
 
 	// get the name of the JWT cookie name and validate
+	// TODO: move cookie name validation to config package
 	cookieName := defaultCookieName
 	if cfg.JWT.CookieName != "" {
 		cookieName = cfg.JWT.CookieName

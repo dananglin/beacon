@@ -108,6 +108,8 @@ func Govet() error {
 // To rebuild packages that are already up-to-date set BEACON_BUILD_REBUILD_ALL=1
 // To enable verbose mode set BEACON_BUILD_VERBOSE=1
 func Build() error {
+	fmt.Println("Building the binary...")
+
 	main := "./cmd/" + projectName
 	flags := ldflags()
 	build := sh.RunCmd("go", "build")
@@ -124,7 +126,13 @@ func Build() error {
 
 	args = append(args, main)
 
-	return build(args...)
+	if err := build(args...); err != nil {
+		return fmt.Errorf("error building the binary: %w", err)
+	}
+
+	fmt.Printf("Successfully built the binary to %q.\n", binary)
+
+	return nil
 }
 
 // Install install the executable.
@@ -141,6 +149,8 @@ func Install() error {
 
 	dest := filepath.Join(installPrefix, "bin", appName())
 
+	fmt.Printf("Installing the binary to %s\n", dest)
+
 	if err := sh.Copy(dest, binary); err != nil {
 		return fmt.Errorf("unable to install %s; %w", dest, err)
 	}
@@ -152,6 +162,8 @@ func Install() error {
 
 // Clean clean the workspace.
 func Clean() error {
+	fmt.Println("Cleaning the workspace...")
+
 	binary := filepath.Join("./__build", appName())
 
 	if err := sh.Rm(binary); err != nil {
@@ -162,13 +174,22 @@ func Clean() error {
 		return err
 	}
 
+	fmt.Println("Workspace cleaned.")
+
 	return nil
 }
 
 // Docker builds the docker image.
 // Use BEACON_DOCKER_IMAGE_NAME to specify the docker image name.
 func Docker() error {
-	mg.Deps(Build)
+	os.Setenv("GOOS", "linux")
+	os.Setenv("GOARCH", "amd64")
+	os.Setenv("CGO_ENABLED", "0")
+	os.Setenv(envBuildRebuildAll, "1")
+
+	mg.SerialDeps(Clean, Build)
+
+	fmt.Println("Building the docker image...")
 
 	imageName := os.Getenv(envDockerImageName)
 	if imageName == "" {
@@ -179,6 +200,8 @@ func Docker() error {
 	if err := sh.Run("docker", "build", "-t", imageName, "-f", dockerfile(), "."); err != nil {
 		return fmt.Errorf("error building the docker image: %w", err)
 	}
+
+	fmt.Printf("Successfully built the docker image %q.\n", imageName)
 
 	return nil
 }

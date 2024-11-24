@@ -14,7 +14,7 @@ import (
 
 var (
 	ErrMissingDatabasePath = errors.New("please set the database path")
-	ErrMissingJWTSecret    = errors.New("JWT Secret is empty")
+	ErrMissingJWTSecret    = errors.New("the JWT Secret is empty")
 )
 
 type Config struct {
