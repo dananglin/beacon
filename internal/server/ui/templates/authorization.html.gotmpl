@@ -30,7 +30,7 @@
         is requesting that you sign in to their app as</p>
         </div>
 
-        <div class="base profile_id"><p>https://dananglin.dev.private/</p></div>
+        <div class="base profile_id"><p>{{ .ProfileID }}</p></div>
 
         <div class="base">
         {{ if gt (len .Scopes) 0 }}
