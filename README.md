@@ -10,12 +10,14 @@ SPDX-License-Identifier: CC-BY-4.0
 
 Beacon is a standalone indieauth server written in [Go](https://go.dev/).
 
+This project is currently in its experimental stages so there may be breaking changes as the project develops.
+
 ## Repository mirrors
 
-Beacon is actively developed in [Code Flow](https://codeflow.dananglin.me.uk/apollo/beacon) with the `main` branch mirrored to the following forges:
+Beacon is actively developed in [Code Flow](https://codeflow.dananglin.me.uk/apollo/beacon) with the `main` branch synced to the following forges:
 
-- **Codeberg:** TBC
-- **GitHub:** TBC
+- **Codeberg:** https://codeberg.org/dananglin/beacon
+- **GitHub:** https://github.com/dananglin/beacon
 
 ## Licensing
 
