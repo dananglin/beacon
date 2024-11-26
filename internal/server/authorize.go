@@ -447,7 +447,6 @@ func newClientAuthRequestFromQuery(queryValues url.Values) (clientAuthRequest, e
 		codeChallengeMethod,
 		redirectURI,
 		responseType,
-		scope,
 		state,
 	}
 
@@ -457,6 +456,14 @@ func newClientAuthRequestFromQuery(queryValues url.Values) (clientAuthRequest, e
 		}
 	}
 
+	scopeStr := queryValues.Get(scope)
+
+	scopes := make([]string, 0)
+
+	if scopeStr != "" {
+		scopes = strings.Split(scopeStr, " ")
+	}
+
 	request := clientAuthRequest{
 		ClientID:            queryValues.Get(clientID),
 		CodeChallenge:       queryValues.Get(codeChallenge),
@@ -464,7 +471,7 @@ func newClientAuthRequestFromQuery(queryValues url.Values) (clientAuthRequest, e
 		Me:                  queryValues.Get(me),
 		RedirectURI:         queryValues.Get(redirectURI),
 		ResponseType:        queryValues.Get(responseType),
-		Scope:               strings.Split(queryValues.Get(scope), " "),
+		Scope:               scopes,
 		State:               queryValues.Get(state),
 	}
 
