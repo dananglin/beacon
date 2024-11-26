@@ -69,7 +69,7 @@ func FetchClientMetadata(ctx context.Context, clientID string) (ClientIDMetadata
 
 	switch gotContentType {
 	case "application/json":
-		if err := json.NewDecoder(request.Body).Decode(&metadata); err != nil {
+		if err := json.NewDecoder(response.Body).Decode(&metadata); err != nil {
 			return ClientIDMetadata{}, fmt.Errorf("unable to decode the JSON data: %w", err)
 		}
 	case "text/html", "text/html; charset=UTF-8", "text/html; charset=utf-8":
