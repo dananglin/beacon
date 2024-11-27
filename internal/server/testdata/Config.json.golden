@@ -1,0 +1,12 @@
+{
+    "bindAddress": "127.0.0.1",
+    "port": 3333,
+    "domain": "indieauth.test.example",
+    "database": {
+      "path": "testdata/Database.db.golden"
+    },
+    "jwt": {
+      "secret": "kQpaCCwlsiqDHN9EAFBsrsqxCxuYEJiqvyUTMCt3+YrxXrkB",
+      "cookieName": "beacon_is_great"
+    }
+}

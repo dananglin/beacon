@@ -119,7 +119,7 @@ func (s *Server) setupRouter() error {
 	mux.Handle("POST /setup", http.HandlerFunc(s.setup))
 	mux.Handle("GET /static/", http.StripPrefix("/static", neuter(fileServer)))
 	mux.Handle("GET /{$}", s.entrypoint(s.profileAuthorization(rootRedirect, s.profileRedirectToLogin)))
-	mux.Handle("GET /.well-known/oauth-authorization-server", s.entrypoint(http.HandlerFunc(s.getMetadata)))
+	mux.Handle("GET /.well-known/oauth-authorization-server", s.entrypoint(http.HandlerFunc(s.GetMetadata)))
 	mux.Handle("GET /profile/login", s.entrypoint(http.HandlerFunc(s.getLoginForm)))
 	mux.Handle("POST /profile/login", s.entrypoint(http.HandlerFunc(s.authenticate)))
 	mux.Handle("GET /profile/overview", s.entrypoint(s.profileAuthorization(s.getOverviewPage, s.profileRedirectToLogin)))
