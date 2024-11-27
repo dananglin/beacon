@@ -10,11 +10,15 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 )
+
+const defaultCookieName = "beacon_is_great"
 
 var (
 	ErrMissingDatabasePath = errors.New("please set the database path")
 	ErrMissingJWTSecret    = errors.New("the JWT Secret is empty")
+	ErrInvalidCookieName   = errors.New("the configured cookie name is invalid")
 )
 
 type Config struct {
@@ -63,5 +67,23 @@ func NewConfig(path string) (Config, error) {
 		return Config{}, ErrMissingJWTSecret
 	}
 
+	if cfg.JWT.CookieName == "" {
+		cfg.JWT.CookieName = defaultCookieName
+	}
+
+	if err := validateCookieName(cfg.JWT.CookieName); err != nil {
+		return Config{}, fmt.Errorf("error validating the cookie name: %w", err)
+	}
+
 	return cfg, nil
+}
+
+func validateCookieName(name string) error {
+	pattern := regexp.MustCompile(`^(?:[A-Za-z0-9]|\+|\-|\.|\_)+$`)
+
+	if !pattern.MatchString(name) {
+		return ErrInvalidCookieName
+	}
+
+	return nil
 }

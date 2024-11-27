@@ -1,0 +1,12 @@
+{
+    "bindAddress": "127.0.0.1",
+    "port": 443,
+    "domain": "auth.example.net",
+    "database": {
+      "path": "/app/data/indieauth.db"
+    },
+    "jwt": {
+      "secret": "vrDFbzgiWEyWn21YLAo0DDVm4pO0CihJhDDZZArxKu0J8w0d-8FtKlt1tCsJFk",
+      "cookieName": ""
+    }
+}
