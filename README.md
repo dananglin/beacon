@@ -8,7 +8,7 @@ SPDX-License-Identifier: CC-BY-4.0
 
 ## Overview
 
-Beacon is a standalone indieauth server written in [Go](https://go.dev/).
+Beacon is a standalone IndieAuth authorization server written in [Go](https://go.dev/).
 
 This project is currently in its experimental stages so there may be breaking changes as the project develops.
 
@@ -18,6 +18,11 @@ Beacon is actively developed in [Code Flow](https://codeflow.dananglin.me.uk/apo
 
 - **Codeberg:** https://codeberg.org/dananglin/beacon
 - **GitHub:** https://github.com/dananglin/beacon
+
+## Documentation
+
+- [**Tutorial**](docs/tutorial.md): A complete guide on how to set up your own Beacon instance to sign in with your own domain.
+- [**Configuration reference**](docs/configuration.md): The configuration reference documentation.
 
 ## Licensing
 

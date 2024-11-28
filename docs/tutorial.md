@@ -221,7 +221,7 @@ clients are supported.
 ### Set the indieauth-metadata HTTP header
 
 Your instance's `indieauth-metadata` endpoint can be found at `https://<YOUR_BEACON_URL>/.well-known/oauth-authorization-server`.
-To confirm enter the URL in your browser or HTTP client.
+To confirm, enter the URL in your browser or HTTP client.
 You should receive a JSON document that includes both the authorization and token endpoints.
 
 ```bash
@@ -251,12 +251,78 @@ curl -s https://auth.dananglin.example/.well-known/oauth-authorization-server | 
 }
 ```
 
-_TODO_: Finish section
+Once you have confirmed the endpoint,
+add a `Link` header to your HTTP response headers in your reverse proxy configuration or your HTTP server (if you're running a HTTP server behind your domain).
+The header should be similar to the example below.
+
+```
+Link: <https://auth.dananglin.example/.well-known/oauth-authorization-server>; rel="indieauth-metadata"
+```
+
+See [here](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Link) for more information on the Link header.
+
+When fetching your site's HTTP headers, you should see the `indieauth-metadata` endpoint in the response.
+
+```
+$ curl -I https://dananglin.example
+HTTP/2 200
+accept-ranges: bytes
+alt-svc: h3=":443"; ma=2592000
+content-type: text/html; charset=utf-8
+etag: "d5vav5hxis04bz"
+last-modified: Mon, 25 Nov 2024 13:39:13 GMT
+link: <https://auth.dananglin.example/.well-known/oauth-authorization-server>; rel="indieauth-metadata"
+server: Caddy
+vary: Accept-Encoding
+content-length: 431
+date: Wed, 27 Nov 2024 16:36:33 GMT
+```
+
+### Set the indieauth-metadata link tag
+
+Alternatively to configuring the HTTP header you can specify the `indieauth-metadata` endpoint in a link tag in your HTML document if your site serves a HTML page.
+
+Example:
+
+```html
+<link rel="indieauth-metadata" href="https://auth.dananglin.example/.well-known/oauth-authorization-server">
+```
 
 ### Set the authorization_endpoint and token_endpoint link tag
 
-_TODO_
+The IndieAuth specification recommends setting the `authorization_endpoint` and `token_endpoint` link tags for backwards compatibility with older clients.
+Newer clients may also look for these if they are unable to find the `indieauth-metadata` endpoint for whatever reason.
+
+Note that the recommendation for looking for these may be removed from the specification once the use of the `indieauth-metadata` endpoint is widely supported.
+
+Example:
+
+```html
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <link rel="authorization_endpoint" href="https://auth.dananglin.example/indieauth/authorize">
+        <link rel="token_endpoint" href="https://auth.dananglin.example/indieauth/token">
+    </head>
+</html>
+```
 
 ## Sign into an IndieAuth client
 
-_TODO_
+<div style="text-align:center">
+<img src="./assets/images/consent_form.png"
+     alt="Example consent form"
+     width="608"
+     height="300">
+</div>
+
+Once you have everything set up, you can sign into an IndieAuth client (e.g. [IndieLogin.com](https://indielogin.com/)) with your own domain or website.
+The client will ask you to enter your domain and then redirect you to your Beacon instance where you'll need to sign in and authorize the client to sign
+you into their service using your domain as your identity. 
+
+The client's authorization request may include additional scopes such as:
+- `profile` - This will allow the client to view your display name, profile URL and photo URL.
+- `email` - This will allow the client to view your email address.
+
+Click `Accept` to approve the client's authorization request.
