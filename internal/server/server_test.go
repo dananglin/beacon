@@ -2,19 +2,17 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 
-package server_test
+package server
 
 import (
 	"os"
 	"testing"
-
-	"codeflow.dananglin.me.uk/apollo/beacon/internal/server"
 )
 
 func TestServer(t *testing.T) {
 	t.Parallel()
 
-	testServer, err := server.NewServer("testdata/Config.json.golden")
+	testServer, err := NewServer("testdata/Config.json.golden")
 	if err != nil {
 		t.Fatalf("FAILED test %s: Unable to create the test server: %v", t.Name(), err)
 	}

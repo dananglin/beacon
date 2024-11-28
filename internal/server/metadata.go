@@ -8,7 +8,7 @@ import (
 	"net/http"
 )
 
-type Metadata struct {
+type metadata struct {
 	Issuer                                 string   `json:"issuer"`
 	AuthorizationEndpoint                  string   `json:"authorization_endpoint"`
 	TokenEndpoint                          string   `json:"token_endpoint"`
@@ -20,8 +20,8 @@ type Metadata struct {
 	AuthorizationResponseISSParamSupported bool     `json:"authorization_response_iss_parameter_supported"`
 }
 
-func (s *Server) GetMetadata(writer http.ResponseWriter, _ *http.Request) {
-	metadata := Metadata{
+func (s *Server) getMetadata(writer http.ResponseWriter, _ *http.Request) {
+	metadata := metadata{
 		Issuer:                                 s.issuer,
 		AuthorizationEndpoint:                  s.authEndpoint,
 		TokenEndpoint:                          s.tokenEndpoint,

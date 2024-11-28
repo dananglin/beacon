@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 
-package server_test
+package server
 
 import (
 	"encoding/json"
@@ -10,15 +10,13 @@ import (
 	"net/http/httptest"
 	"reflect"
 	"testing"
-
-	"codeflow.dananglin.me.uk/apollo/beacon/internal/server"
 )
 
-func testGetMetadata(srv *server.Server) func(t *testing.T) {
+func testGetMetadata(srv *Server) func(t *testing.T) {
 	return func(t *testing.T) {
 		writer := httptest.NewRecorder()
 
-		srv.GetMetadata(writer, nil)
+		srv.getMetadata(writer, nil)
 
 		response := writer.Result()
 		defer response.Body.Close()
@@ -41,7 +39,7 @@ func testGetMetadata(srv *server.Server) func(t *testing.T) {
 			)
 		}
 
-		var got server.Metadata
+		var got metadata
 
 		if err := json.NewDecoder(response.Body).Decode(&got); err != nil {
 			t.Fatalf(
@@ -51,7 +49,7 @@ func testGetMetadata(srv *server.Server) func(t *testing.T) {
 			)
 		}
 
-		want := server.Metadata{
+		want := metadata{
 			Issuer:                                 "https://indieauth.test.example/",
 			AuthorizationEndpoint:                  "https://indieauth.test.example/indieauth/authorize",
 			TokenEndpoint:                          "https://indieauth.test.example/indieauth/token",
