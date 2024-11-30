@@ -41,13 +41,16 @@ type ClientIDMetadata struct {
 	RedirectURIs []string `json:"redirect_uris"`
 }
 
-func FetchClientMetadata(ctx context.Context, clientID string) (ClientIDMetadata, error) {
+func FetchClientMetadata(ctx context.Context, clientID, issuer string) (ClientIDMetadata, error) {
 	request, err := http.NewRequestWithContext(ctx, http.MethodGet, clientID, nil)
 	if err != nil {
 		return ClientIDMetadata{}, fmt.Errorf("error received after creating the HTTP request: %w", err)
 	}
 
-	request.Header.Set("User-Agent", info.ApplicationTitledName+"/0.0.0 ("+info.ApplicationWebsite+")")
+	request.Header.Set(
+		"User-Agent",
+		fmt.Sprintf("%s/%s (+%s)", info.ApplicationTitledName, info.BinaryVersion, issuer),
+	)
 
 	client := http.Client{}
 

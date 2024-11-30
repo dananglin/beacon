@@ -162,6 +162,11 @@ func (s *Server) exchangeAuthorization(exchange exchangeHandlerFunc) http.Handle
 			codeVerifier = request.PostFormValue("code_verifier")
 		)
 
+		// Regardless of the success or failure of the exchange authorization the code
+		// and associated data is deleted from the cache to ensure that is doesn't get
+		// used again.
+		defer s.cache.Delete(code)
+
 		// The grant type must be "authorization_code"
 		if grantType == "" {
 			sendClientError(
@@ -261,10 +266,6 @@ func (s *Server) exchangeAuthorization(exchange exchangeHandlerFunc) http.Handle
 
 		// The client is now authorized to complete the required exchange.
 		exchange(writer, initialClientAuthReq)
-
-		// Delete the code and associated data from the cache
-		// to ensure that is doesn't get used again.
-		s.cache.Delete(code)
 	})
 }
 
@@ -276,6 +277,8 @@ func neuter(next http.Handler) http.Handler {
 				http.StatusNotFound,
 				ErrInvalidFileserverPath,
 			)
+
+			return
 		}
 
 		next.ServeHTTP(writer, request)

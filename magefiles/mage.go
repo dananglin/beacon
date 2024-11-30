@@ -80,20 +80,26 @@ func Gofmt() error {
 		return err
 	}
 
-	formattedFiles := ""
+	files := make([]string, 0)
 
-	for _, file := range strings.Split(output, "\n") {
-		formattedFiles += "\n- " + file
+	if output != "" {
+		files = strings.Split(output, "\n")
+	}
+
+	filesToFormat := ""
+
+	for _, file := range files {
+		filesToFormat += "\n- " + file
 	}
 
 	if os.Getenv(envFailOnFormatting) != "1" {
-		fmt.Println(formattedFiles)
+		fmt.Println(filesToFormat)
 
 		return nil
 	}
 
-	if len(output) != 0 {
-		return fmt.Errorf("The following files needs to be formatted: %s", formattedFiles)
+	if filesToFormat != "" {
+		return fmt.Errorf("The following files needs to be formatted: %s", filesToFormat)
 	}
 
 	return nil

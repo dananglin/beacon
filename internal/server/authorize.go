@@ -67,7 +67,7 @@ func (s *Server) authorize(writer http.ResponseWriter, request *http.Request, pr
 	}
 
 	// Fetch the client's metadata and use it to validate the authorization request
-	clientMetadata, err := discovery.FetchClientMetadata(request.Context(), authReq.ClientID)
+	clientMetadata, err := discovery.FetchClientMetadata(request.Context(), authReq.ClientID, s.issuer)
 	if err != nil {
 		sendServerError(
 			writer,

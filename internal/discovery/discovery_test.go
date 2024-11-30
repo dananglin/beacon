@@ -55,7 +55,7 @@ func testGetMetadataFromHTML(t *testing.T) {
 	}))
 	defer testClient.Close()
 
-	gotMetadata, err := discovery.FetchClientMetadata(context.Background(), testClient.URL)
+	gotMetadata, err := discovery.FetchClientMetadata(context.Background(), testClient.URL, "http://auth.testserver.example/")
 	if err != nil {
 		t.Fatalf(
 			"FAILED test %s: Received an error after attempting to get the client's metadata.\ngot: %q",
@@ -114,7 +114,7 @@ func testGetMetadataFromJSON(t *testing.T) {
 	}))
 	defer testClient.Close()
 
-	gotMetadata, err := discovery.FetchClientMetadata(context.Background(), testClient.URL)
+	gotMetadata, err := discovery.FetchClientMetadata(context.Background(), testClient.URL, "http://auth.testserver.example/")
 	if err != nil {
 		t.Fatalf(
 			"FAILED test %s: Received an error after attempting to get the client's metadata.\ngot: %q",
@@ -159,7 +159,7 @@ func testBadStatusCode(t *testing.T) {
 	}))
 	defer testClient.Close()
 
-	_, err := discovery.FetchClientMetadata(context.Background(), testClient.URL)
+	_, err := discovery.FetchClientMetadata(context.Background(), testClient.URL, "http://auth.testserver.example/")
 	if err == nil {
 		t.Fatalf(
 			"FAILED test %s: Did not receive an error for bad status code.",

@@ -4,16 +4,12 @@
 
 package info
 
-const (
-	ApplicationWebsite = "https://codeflow.dananglin.me.uk/apollo/beacon"
-)
-
 var (
-	ApplicationName       = "beacon" //nolint:gochecknoglobals
-	ApplicationTitledName = "Beacon" //nolint:gochecknoglobals
+	ApplicationName       = "beacon"     //nolint:gochecknoglobals
+	ApplicationTitledName = "Beacon"     //nolint:gochecknoglobals
+	BinaryVersion         = "v0.1.0-dev" //nolint:gochecknoglobals
 
-	BinaryVersion string //nolint:gochecknoglobals
-	BuildTime     string //nolint:gochecknoglobals
-	GoVersion     string //nolint:gochecknoglobals
-	GitCommit     string //nolint:gochecknoglobals
+	BuildTime string //nolint:gochecknoglobals
+	GoVersion string //nolint:gochecknoglobals
+	GitCommit string //nolint:gochecknoglobals
 )
