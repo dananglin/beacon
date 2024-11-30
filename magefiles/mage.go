@@ -32,6 +32,7 @@ const (
 	envBuildVerbose     = "BEACON_BUILD_VERBOSE"
 	envFailOnFormatting = "BEACON_FAIL_ON_FORMATTING"
 	envAppName          = "BEACON_APP_NAME"
+	envAppVersion       = "BEACON_APP_VERSION"
 	envDockerImageName  = "BEACON_DOCKER_IMAGE_NAME"
 	envDockerfile       = "BEACON_DOCKERFILE"
 )
@@ -229,7 +230,7 @@ func ldflags() string {
 
 	return fmt.Sprintf(
 		ldflagsfmt,
-		binaryVersionVar, version(),
+		binaryVersionVar, appVersion(),
 		gitCommitVar, gitCommit(),
 		goVersionVar, runtime.Version(),
 		buildTimeVar, buildTime,
@@ -238,8 +239,13 @@ func ldflags() string {
 	)
 }
 
-// version returns the latest git tag using git describe.
-func version() string {
+// appVersion returns the latest git tag using git describe.
+func appVersion() string {
+	version := os.Getenv(envAppVersion)
+	if version != "" {
+		return version
+	}
+
 	version, err := sh.Output("git", "describe", "--tags")
 	if err != nil {
 		version = "N/A"
