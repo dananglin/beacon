@@ -7,7 +7,7 @@ package info
 var (
 	ApplicationName       = "beacon"     //nolint:gochecknoglobals
 	ApplicationTitledName = "Beacon"     //nolint:gochecknoglobals
-	BinaryVersion         = "v0.1.0-dev" //nolint:gochecknoglobals
+	BinaryVersion         = "v0.2.0-dev" //nolint:gochecknoglobals
 
 	BuildTime string //nolint:gochecknoglobals
 	GoVersion string //nolint:gochecknoglobals
