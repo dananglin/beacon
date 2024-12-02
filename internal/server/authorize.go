@@ -28,8 +28,9 @@ func (s *Server) authorize(writer http.ResponseWriter, request *http.Request, pr
 
 	authReq, err := s.getClientAuthRequest(&encodedState, request.URL.Query())
 	if err != nil {
-		sendServerError(
+		sendClientError(
 			writer,
+			http.StatusUnauthorized,
 			fmt.Errorf("error getting the client's authorization request: %w", err),
 		)
 
@@ -46,21 +47,6 @@ func (s *Server) authorize(writer http.ResponseWriter, request *http.Request, pr
 				authenticatedProfileID: profileID,
 				profileIDInRequest:     authReq.Me,
 			},
-		)
-
-		return
-	}
-
-	// Ensure that the client ID is a valid URL
-	if err := utilities.ValidateClientURL(authReq.ClientID); err != nil {
-		sendClientError(
-			writer,
-			http.StatusUnauthorized,
-			fmt.Errorf(
-				"the client ID (%s) does not appear to be a valid URL: %w",
-				authReq.ClientID,
-				err,
-			),
 		)
 
 		return
@@ -242,7 +228,7 @@ func (s *Server) authorizeAccept(writer http.ResponseWriter, request *http.Reque
 		url.QueryEscape(s.issuer),
 	)
 
-	writer.Header().Add("HX-Redirect", redirectURL)
+	writer.Header().Add("Hx-Redirect", redirectURL)
 }
 
 func (s *Server) authorizeReject(writer http.ResponseWriter, request *http.Request, _ string) {
@@ -275,7 +261,7 @@ func (s *Server) authorizeReject(writer http.ResponseWriter, request *http.Reque
 		url.QueryEscape(authReq.State),
 	)
 
-	writer.Header().Add("HX-Redirect", redirectURL)
+	writer.Header().Add("Hx-Redirect", redirectURL)
 }
 
 func (s *Server) profileExchange(writer http.ResponseWriter, data clientRequestData) {
@@ -464,8 +450,13 @@ func newClientAuthRequestFromQuery(queryValues url.Values) (clientAuthRequest, e
 		scopes = strings.Split(scopeStr, " ")
 	}
 
+	canonicalizedClientID, err := utilities.ValidateAndCanonicalizeURL(queryValues.Get(clientID), true)
+	if err != nil {
+		return clientAuthRequest{}, fmt.Errorf("error canonicalizing the client ID: %w", err)
+	}
+
 	request := clientAuthRequest{
-		ClientID:            queryValues.Get(clientID),
+		ClientID:            canonicalizedClientID,
 		CodeChallenge:       queryValues.Get(codeChallenge),
 		CodeChallengeMethod: queryValues.Get(codeChallengeMethod),
 		Me:                  queryValues.Get(me),

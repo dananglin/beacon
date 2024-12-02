@@ -28,13 +28,12 @@ var (
 	ErrURLHasNoPathSegment       = errors.New("the URL does not contain a path segment")
 )
 
-// ValidateAndCanonicalizeURL validates the given profile URL according to the indieauth
-// specification. ValidateAndCanonicalizeURL returns the canonicalised profile URL after
+// ValidateAndCanonicalizeURL validates the given URL according to the indieauth
+// specification. The canonicalized URL is returned after it passes the
 // validation checks.
-func ValidateAndCanonicalizeURL(inputURL string) (string, error) {
-	// This regular expression pattern is used to get the profile URL's scheme.
-	// to check if it is missing from the profile URL. If it is missing then the
-	// scheme is set to https.
+func ValidateAndCanonicalizeURL(inputURL string, allowPort bool) (string, error) {
+	// This regular expression pattern is used to get the URL's scheme
+	// to check if it is missing. If missing, the scheme is set to https.
 	schemePattern := regexp.MustCompile(`^[a-z].*:\/\/|^[a-z].*:`)
 	scheme := schemePattern.FindString(inputURL)
 
@@ -51,22 +50,11 @@ func ValidateAndCanonicalizeURL(inputURL string) (string, error) {
 		parsedURL.Path = "/"
 	}
 
-	if err := validateURL(parsedURL, false); err != nil {
+	if err := validateURL(parsedURL, allowPort); err != nil {
 		return "", err
 	}
 
 	return parsedURL.String(), nil
-}
-
-// ValidateClientURL validates the given client URL according to the indieauth
-// specification. An error is returned if the URL is not valid.
-func ValidateClientURL(inputURL string) error {
-	parsedURL, err := url.Parse(inputURL)
-	if err != nil {
-		return fmt.Errorf("unable to parse the URL %q: %w", inputURL, err)
-	}
-
-	return validateURL(parsedURL, true)
 }
 
 func validateURL(inputURL *url.URL, allowPort bool) error {

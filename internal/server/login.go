@@ -100,7 +100,7 @@ func (s *Server) authenticate(writer http.ResponseWriter, request *http.Request)
 		return
 	}
 
-	profileID, err := utilities.ValidateAndCanonicalizeURL(form.ProfileID)
+	profileID, err := utilities.ValidateAndCanonicalizeURL(form.ProfileID, false)
 	if err != nil {
 		form.AuthenticationFailure = true
 

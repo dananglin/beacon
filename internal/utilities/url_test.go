@@ -6,14 +6,13 @@ package utilities_test
 
 import (
 	"errors"
-	"slices"
 	"testing"
 
 	"codeflow.dananglin.me.uk/apollo/beacon/internal/utilities"
 )
 
 func TestValidateAndCanonicalizeURL(t *testing.T) {
-	testCases := []struct {
+	testProfileIDs := []struct {
 		name string
 		url  string
 		want string
@@ -45,8 +44,29 @@ func TestValidateAndCanonicalizeURL(t *testing.T) {
 		},
 	}
 
-	for _, tc := range slices.All(testCases) {
-		t.Run(tc.name, testValidProfileURLs(tc.name, tc.url, tc.want))
+	for _, tc := range testProfileIDs {
+		t.Run(tc.name, testValidURL(tc.url, tc.want, false))
+	}
+
+	testClientIDs := []struct {
+		name string
+		url  string
+		want string
+	}{
+		{
+			name: "Non-canonicalised client ID with missing path",
+			url:  "http://app.test.example",
+			want: "http://app.test.example/",
+		},
+		{
+			name: "Canonicalized client ID with port",
+			url:  "https://app.test.example:8443",
+			want: "https://app.test.example:8443/",
+		},
+	}
+
+	for _, tc := range testClientIDs {
+		t.Run(tc.name, testValidURL(tc.url, tc.want, true))
 	}
 
 	errorCases := []struct {
@@ -101,86 +121,69 @@ func TestValidateAndCanonicalizeURL(t *testing.T) {
 		},
 	}
 
-	for _, ec := range slices.All(errorCases) {
-		t.Run(ec.name, testInvalidProfileURL(ec.name, ec.url, ec.wantError))
+	for _, ec := range errorCases {
+		t.Run(ec.name, testInvalidURL(ec.url, ec.wantError))
 	}
 }
 
-func testValidProfileURLs(testName, url, wantURL string) func(t *testing.T) {
+func testValidURL(url, wantURL string, allowPort bool) func(t *testing.T) {
 	return func(t *testing.T) {
-		canonicalisedURL, err := utilities.ValidateAndCanonicalizeURL(url)
+		t.Parallel()
+
+		canonicalisedURL, err := utilities.ValidateAndCanonicalizeURL(url, allowPort)
 		if err != nil {
-			t.Fatalf("FAILED test %q: %v", testName, err)
+			t.Fatalf(
+				"FAILED test %s: Unexpected error received after canonicalizing URL %q.\ngot %q",
+				t.Name(),
+				url,
+				err.Error(),
+			)
 		}
 
 		if canonicalisedURL != wantURL {
-			t.Errorf("FAILED test %q: want %s, got %s", testName, wantURL, canonicalisedURL)
-		} else {
-			t.Logf("PASSED test %q: got %s", testName, canonicalisedURL)
-		}
-	}
-}
-
-func testInvalidProfileURL(testName, url string, wantError error) func(t *testing.T) {
-	return func(t *testing.T) {
-		if _, err := utilities.ValidateAndCanonicalizeURL(url); err == nil {
 			t.Errorf(
-				"FAILED test %q: No error was received using invalid profile URL %q",
-				testName,
-				url,
-			)
-		} else {
-			if !errors.Is(err, wantError) {
-				t.Errorf(
-					"FAILED test %q: Unexpected error received using profile URL %q: got %q",
-					testName,
-					url,
-					err.Error(),
-				)
-			} else {
-				t.Logf(
-					"Expected error received using profile URL %q: got %q",
-					url,
-					err.Error(),
-				)
-			}
-		}
-	}
-}
-
-func TestValidateClientURL(t *testing.T) {
-	testCases := []struct {
-		name string
-		url  string
-	}{
-		{
-			name: "Canonicalized client URL",
-			url:  "https://app.example.party/",
-		},
-		{
-			name: "Canonicalized client URL with port",
-			url:  "https://app.example.party:8443/",
-		},
-	}
-
-	for _, tc := range slices.All(testCases) {
-		t.Run(tc.name, testValidClientURL(tc.name, tc.url))
-	}
-}
-
-func testValidClientURL(testName, url string) func(t *testing.T) {
-	return func(t *testing.T) {
-		if err := utilities.ValidateClientURL(url); err != nil {
-			t.Fatalf(
-				"FAILED test %s: unexpected error received after validating %s: %v",
-				testName,
-				url,
-				err,
+				"FAILED test %s: Unexpected canonicalized URL returned.\nwant: %q\ngot: %q",
+				t.Name(),
+				wantURL,
+				canonicalisedURL,
 			)
 		} else {
 			t.Logf(
-				"Successfully validated the client URL: %s",
+				"Expected canonicalized URL returned.\ngot: %q",
+				canonicalisedURL,
+			)
+		}
+	}
+}
+
+func testInvalidURL(url string, wantErr error) func(t *testing.T) {
+	return func(t *testing.T) {
+		t.Parallel()
+
+		_, err := utilities.ValidateAndCanonicalizeURL(url, false)
+		if err == nil {
+			t.Fatalf(
+				"FAILED test %s: No error was received using invalid profile URL %q",
+				t.Name(),
 				url,
+			)
+
+			return
+		}
+
+		if !errors.Is(err, wantErr) {
+			t.Errorf(
+				"FAILED test %s: Unexpected error received using invalid profile URL %q.\nwant something like: %q\ngot: %q",
+				t.Name(),
+				url,
+				wantErr.Error(),
+				err.Error(),
+			)
+		} else {
+			t.Logf(
+				"Expected error received using invalid profile URL %q.\ngot: %q",
+				url,
+				err.Error(),
 			)
 		}
 	}

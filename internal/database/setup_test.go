@@ -38,7 +38,7 @@ func testDatabaseSetup(boltdb *bolt.DB) func(t *testing.T) {
 
 		t.Log("Now setting up the database.")
 
-		profileID, err := utilities.ValidateAndCanonicalizeURL("https://pippins.example.me")
+		profileID, err := utilities.ValidateAndCanonicalizeURL("https://pippins.example.me", false)
 		if err != nil {
 			t.Fatalf(
 				"FAILED test %s: Received an error validating the profile URL.\ngot %q",

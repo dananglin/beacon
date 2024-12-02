@@ -186,7 +186,7 @@ type setupFormProfile struct {
 func (f *setupForm) validate() bool {
 	f.FieldErrors = make(map[string]string)
 
-	canonicalisedProfielID, err := utilities.ValidateAndCanonicalizeURL(strings.TrimSpace(f.ProfileID))
+	canonicalisedProfielID, err := utilities.ValidateAndCanonicalizeURL(strings.TrimSpace(f.ProfileID), false)
 	if err != nil {
 		slog.Error("profile ID validation failed", "error", err.Error())
 

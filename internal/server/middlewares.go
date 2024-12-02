@@ -222,7 +222,18 @@ func (s *Server) exchangeAuthorization(exchange exchangeHandlerFunc) http.Handle
 		}
 
 		// The client ID must match
-		if clientID != initialClientAuthReq.ClientID {
+		canonicalizedClientID, err := utilities.ValidateAndCanonicalizeURL(clientID, true)
+		if err != nil {
+			sendClientError(
+				writer,
+				http.StatusUnauthorized,
+				fmt.Errorf("error canonicalizing the client ID: %w", err),
+			)
+
+			return
+		}
+
+		if canonicalizedClientID != initialClientAuthReq.ClientID {
 			sendClientError(
 				writer,
 				http.StatusUnauthorized,
