@@ -1,3 +1,10 @@
++++
+title = "Configuration reference"
+description = "The configuration reference documentation."
+weight = 2
+slug = "configuration-reference"
+template = "project-page.html"
++++
 <!--
 SPDX-FileCopyrightText: 2024 Dan Anglin <d.n.i.anglin@gmail.com>
 

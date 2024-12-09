@@ -1,3 +1,10 @@
++++
+title = "Setup Guide"
+description = "A complete guide on how to set up your own Beacon instance to sign in with your own domain."
+weight = 1
+slug = "setup-guide"
+template = "project-page.html"
++++
 <!--
 SPDX-FileCopyrightText: 2024 Dan Anglin <d.n.i.anglin@gmail.com>
 
@@ -11,8 +18,6 @@ This tutorial will go through the process of building and deploying an instance 
 In this example scenario, I have a domain and a personal static website at `https://dananglin.example` and I want
 to deploy an instance of Beacon at `https://auth.dananglin.example` so that I can sign into client sites with my
 domain with IndieAuth.
-
-## Installation
 
 ## Requirements
 
@@ -92,7 +97,7 @@ docker build -t localhost/beacon:latest .
 
 You'll need to create a JSON file to configure your Beacon instance.
 You can copy the example configuration [here](../example/config.json) and edit for your setup.
-Please refer to the [configuration reference](./configuration.md) for help with your configuration.
+Please refer to the [configuration reference](@/projects/beacon/02_configuration.md) for help with your configuration.
 
 ### Generate your JWT secret
 
@@ -185,7 +190,7 @@ These are not required for this setup and you can update them after you've creat
 See the [Profile Information](https://indieauth.spec.indieweb.org/#profile-information) section of the IndieAuth specification to see more information about the profile information.
 
 <div style="text-align:center">
-<img src="./assets/images/setup.png"
+<img src="/projects/beacon/setup.png"
      alt="Example setup form"
      width="495"
      height="540">
@@ -200,7 +205,7 @@ Once you've signed into Beacon you'll be presented with a page with your profile
 update at any time.
 
 <div style="text-align:center">
-<img src="./assets/images/profile.png"
+<img src="/projects/beacon/profile.png"
      alt="Example setup form"
      width="554"
      height="409">
@@ -311,7 +316,7 @@ Example:
 ## Sign into an IndieAuth client
 
 <div style="text-align:center">
-<img src="./assets/images/consent_form.png"
+<img src="/projects/beacon/consent_form.png"
      alt="Example consent form"
      width="608"
      height="300">
