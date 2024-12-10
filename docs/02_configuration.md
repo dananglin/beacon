@@ -20,6 +20,7 @@ SPDX-License-Identifier: CC-BY-4.0
 | `bindAddress` | string | The IP address to bind your Beacon instance to. |
 | `port` | int | The port to listen for HTTP requests. |
 | `domain` | string | The resolvable domain name of your Beacon instance. |
+| `gracefulShutdownTimeout` | int | The maximum time (in seconds) to gracefully shutdown Beacon. |
 | `database` | [DatabaseConfig](#databaseconfig) | Database configuration. |
 | `jwt` | [JWTConfig](#jwtconfig) | JWT configuration. |
 

@@ -13,7 +13,10 @@ import (
 	"regexp"
 )
 
-const defaultCookieName = "beacon_is_great"
+const (
+	defaultCookieName              = "beacon_is_great"
+	defaultGracefulShutdownTimeout = 30
+)
 
 var (
 	ErrMissingDatabasePath = errors.New("please set the database path")
@@ -22,11 +25,12 @@ var (
 )
 
 type Config struct {
-	BindAddress string   `json:"bindAddress"`
-	Port        int32    `json:"port"`
-	Domain      string   `json:"domain"`
-	Database    Database `json:"database"`
-	JWT         JWT      `json:"jwt"`
+	BindAddress             string   `json:"bindAddress"`
+	Port                    int32    `json:"port"`
+	Domain                  string   `json:"domain"`
+	GracefulShutdownTimeout int      `json:"gracefulShutdownTimeout"`
+	Database                Database `json:"database"`
+	JWT                     JWT      `json:"jwt"`
 }
 
 type Database struct {
@@ -73,6 +77,10 @@ func NewConfig(path string) (Config, error) {
 
 	if err := validateCookieName(cfg.JWT.CookieName); err != nil {
 		return Config{}, fmt.Errorf("error validating the cookie name: %w", err)
+	}
+
+	if cfg.GracefulShutdownTimeout <= 0 {
+		cfg.GracefulShutdownTimeout = defaultGracefulShutdownTimeout
 	}
 
 	return cfg, nil

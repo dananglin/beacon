@@ -18,9 +18,10 @@ func TestConfig(t *testing.T) {
 
 	testCases := []config.Config{
 		{
-			BindAddress: "127.0.0.1",
-			Port:        443,
-			Domain:      "auth.example.net",
+			BindAddress:             "127.0.0.1",
+			Port:                    443,
+			Domain:                  "auth.example.net",
+			GracefulShutdownTimeout: 10,
 			Database: config.Database{
 				Path: "/app/data/indieauth.db",
 			},
@@ -30,9 +31,10 @@ func TestConfig(t *testing.T) {
 			},
 		},
 		{
-			BindAddress: "127.0.0.1",
-			Port:        443,
-			Domain:      "auth.example.net",
+			BindAddress:             "127.0.0.1",
+			Port:                    443,
+			Domain:                  "auth.example.net",
+			GracefulShutdownTimeout: 30,
 			Database: config.Database{
 				Path: "/app/data/indieauth.db",
 			},
