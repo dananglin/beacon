@@ -22,6 +22,7 @@ import (
 const (
 	projectName          = "beacon"
 	defaultAppName       = projectName
+	toolsModFile         = "./tools/tools.mod"
 	defaultInstallPrefix = "/usr/local"
 	defaultDockerfile    = "Dockerfile"
 
@@ -65,12 +66,26 @@ func Lint() error {
 
 // Gosec runs gosec against the code.
 func Gosec() error {
-	return sh.RunV("gosec", "./...")
+	return sh.RunV(
+		"go",
+		"tool",
+		"--modfile",
+		toolsModFile,
+		"gosec",
+		"./...",
+	)
 }
 
 // Staticcheck runs staticcheck against the code.
 func Staticcheck() error {
-	return sh.RunV("staticcheck", "./...")
+	return sh.RunV(
+		"go",
+		"tool",
+		"--modfile",
+		toolsModFile,
+		"staticcheck",
+		"./...",
+	)
 }
 
 // Gofmt checks the code for formatting.

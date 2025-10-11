@@ -4,10 +4,11 @@
 
 module codeflow.dananglin.me.uk/apollo/beacon
 
-go 1.23.2
+go 1.25.2
 
 require (
 	github.com/golang-jwt/jwt/v5 v5.2.1
+	github.com/magefile/mage v1.15.0
 	go.etcd.io/bbolt v1.3.11
 	golang.org/x/crypto v0.28.0
 	willnorris.com/go/microformats v1.2.1-0.20240301064101-b5d1b9d2120e
