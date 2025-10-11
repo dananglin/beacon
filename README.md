@@ -14,50 +14,14 @@ This project is currently in early stages of development so there may be breakin
 
 ## Development
 
-Beacon is actively developed in [Code Flow](https://codeflow.dananglin.me.uk/apollo/beacon) with the `main` branch synced to the following forges:
+This project is actively developed in [Code Flow](https://codeflow.dananglin.me.uk/apollo/beacon)
+with the `main` branch synced to the following forges:
 
 - [**Codeberg**](https://codeberg.org/dananglin/beacon)
-- [**GitHub**](https://github.com/dananglin/beacon)
 
 ## Full documentation
 
 The project's documentation can be found [here](https://dananglin.me.uk/projects/beacon/).
-
-## 🤝 Contributing
-
-### Run the application
-
-Clone the repository.
-
-```bash
-git clone https://github.com/dananglin/beacon.git
-cd beacon
-```
-
-Copy the example configuration and generate the JWT secret.
-
-```bash
-cp ./example/config.json ./config.json
-openssl rand -base64 36
-```
-
-Update the configuration with the secret and run the application.
-
-```bash
-./beacon serve --config config.json
-```
-
-### Run the tests
-
-You can run the tests with the below command.
-
-```bash
-go test -v ./...
-```
-
-### Submit a pull request
-
-If you'd like to contribute, please fork the repository and open a pull request to the `main` branch.
 
 ## Licensing
 

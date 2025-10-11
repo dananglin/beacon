@@ -40,7 +40,6 @@ This project is actively developed in [Code Flow](https://codeflow.dananglin.me.
 `main` branch synced to the following forges:
 
 - [**Codeberg**](https://codeberg.org/dananglin/beacon)
-- [**GitHub**](https://github.com/dananglin/beacon)
 
 ## Licensing
 

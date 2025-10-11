@@ -26,7 +26,7 @@ domain with IndieAuth.
 The following tools are needed to build the binary:
 
 - **Git:** Required for cloning the repository. Please go [here](https://git-scm.com/downloads) for instructions on how to download Git for your repository.
-- **Go:** A minimum version of Go 1.23.3 is required for installing Enbas. Please go [here](https://go.dev/dl/) to download the latest version.
+- **Go:** A minimum version of Go 1.23.3 is required for installing Beacon. Please go [here](https://go.dev/dl/) to download the latest version.
 - **Mage (optional):** The project includes mage targets for building the binary and docker image. The main advantage of using mage over just using `go build` is that the build information is built into the binary during compilation. You can visit the [Mage website](https://magefile.org/) for instructions on how to install Mage.
 
 ### Deployment requirements
@@ -42,7 +42,7 @@ This tutorial assumes that you have both the DNS record for the domain and the r
 
 Clone the repository.
 ```bash
-git clone https://github.com/dananglin/beacon.git
+git clone https://codeberg.org/dananglin/beacon.git
 ```
 
 #### Build with mage
