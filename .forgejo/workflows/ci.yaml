@@ -1,0 +1,43 @@
+# SPDX-FileCopyrightText: 2024 2024 Dan Anglin <d.n.i.anglin@gmail.com>
+#
+# SPDX-License-Identifier: AGPL-3.0-only
+
+---
+name: "CI"
+
+on:
+  pull_request:
+    branches:
+    - "main"
+    types:
+    - "opened"
+    - "synchronize"
+
+jobs:
+  ci:
+    name: "CI"
+    if: "${{ ! github.event.pull_request.draft }}"
+    runs-on: "docker"
+    container:
+      image: "golang:1.25.3-trixie"
+      volumes:
+      - "go-mod-cache:/go/pkg/mod"
+    env:
+      BEACON_TEST_VERBOSE: "1"
+      BEACON_TEST_COVER: "1"
+      BEACON_FAIL_ON_FORMATTING: "1"
+    steps:
+    - name: "Checkout the repository"
+      uses: "https://github.com/taiki-e/checkout-action@699545516363ce4a3728c1cb579dd77bfbf1d7f3" # 2025-10-11
+    - name: "Run tests"
+      run: "go tool -modfile=tools/tools.mod mage -v test"
+    - name: "Run gosec"
+      run: "go tool -modfile=tools/tools.mod mage -v gosec"
+    - name: "Run go vet"
+      run: "go tool -modfile=tools/tools.mod mage -v govet"
+    - name: "Check formatting"
+      run: "go tool -modfile=tools/tools.mod mage -v gofmt"
+    - name: "Run staticcheck"
+      run: "go tool -modfile=tools/tools.mod mage -v staticcheck"
+    - name: "REUSE Compliance Check"
+      uses: "https://github.com/fsfe/reuse-action@v6.0.0"

@@ -1,6 +1,10 @@
+// SPDX-FileCopyrightText: 2024 Dan Anglin <d.n.i.anglin@gmail.com>
+//
+// SPDX-License-Identifier: AGPL-3.0-only
+
 module codeflow.dananglin.me.uk/apollo/beacon/tools
 
-go 1.25.2
+go 1.25.3
 
 tool (
 	github.com/magefile/mage
