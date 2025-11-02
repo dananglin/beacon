@@ -7,8 +7,9 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-mage="go tool -modfile=./tools/tools.mod mage"
+export BEACON_APP_VERSION="${FLOW_SERVICE_VERSION}"
 
+mage="go tool -modfile=./tools/tools.mod mage"
 mkdir -p "${FLOW_SERVICE_BUILD_DIR}"
 ${mage} clean build
 mv "__build/${BEACON_APP_NAME}" "${FLOW_SERVICE_BUILD_DIR}/${BEACON_APP_NAME}"
