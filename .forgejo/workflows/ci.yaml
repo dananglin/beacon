@@ -19,7 +19,7 @@ jobs:
     if: "${{ ! github.event.pull_request.draft }}"
     runs-on: "docker"
     container:
-      image: "golang:1.25.3-trixie"
+      image: "golang:1.25.6-trixie"
       volumes:
       - "go-mod-cache:/go/pkg/mod"
     env:

@@ -2,11 +2,11 @@
 #
 # SPDX-License-Identifier: CC0-1.0
 
-# Creates a development environment for the Enbas project.
+# Creates a Nix development environment for the Beacon project.
 let
   # Branch: nixos-unstable
-  # Date of commit: 2025-10-07
-  commit_ref = "c9b6fb798541223bbb396d287d16f43520250518";
+  # Date of commit: 2026-03-02
+  commit_ref = "cf59864ef8aa2e178cccedbe2c178185b0365705";
   nixpkgs = fetchTarball "https://github.com/NixOS/nixpkgs/tarball/${commit_ref}";
   pkgs = import nixpkgs {
     config = { };
@@ -18,7 +18,6 @@ pkgs.mkShellNoCC {
   packages = with pkgs; [
     git
     go
-    go-grip
     golangci-lint
     gopls
     reuse

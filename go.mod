@@ -4,7 +4,7 @@
 
 module codeflow.dananglin.me.uk/apollo/beacon
 
-go 1.25.3
+go 1.25.6
 
 require (
 	github.com/golang-jwt/jwt/v5 v5.2.1
