@@ -230,35 +230,6 @@ func Docker() error {
 	return nil
 }
 
-// Site build the documentation site using mdbook
-func Site() error {
-	fmt.Println("Building the documentation site...")
-
-	if err := sh.Run(
-		"mdbook",
-		"clean",
-		"--dest-dir",
-		mdbookBuildDir,
-		mdbookProjectDir,
-	); err != nil {
-		return fmt.Errorf("error cleaning the build directory: %w", err)
-	}
-
-	if err := sh.Run(
-		"mdbook",
-		"build",
-		"--dest-dir",
-		mdbookBuildDir,
-		mdbookProjectDir,
-	); err != nil {
-		return fmt.Errorf("error building the site: %w", err)
-	}
-
-	fmt.Println("Successfully built the documentation site.")
-
-	return nil
-}
-
 // ldflags returns the build flags.
 func ldflags() string {
 	var (
