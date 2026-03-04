@@ -25,6 +25,8 @@ const (
 	toolsModFile         = "./tools/tools.mod"
 	defaultInstallPrefix = "/usr/local"
 	defaultDockerfile    = "Dockerfile"
+	mdbookProjectDir     = "__mdbook/beacon"
+	mdbookBuildDir       = "__build/site"
 
 	envInstallPrefix    = "BEACON_INSTALL_PREFIX"
 	envTestVerbose      = "BEACON_TEST_VERBOSE"
@@ -201,7 +203,7 @@ func Clean() error {
 	return nil
 }
 
-// Docker builds the docker image.
+// Docker build the docker image.
 // Use BEACON_DOCKER_IMAGE_NAME to specify the docker image name.
 func Docker() error {
 	os.Setenv("GOOS", "linux")
@@ -224,6 +226,35 @@ func Docker() error {
 	}
 
 	fmt.Printf("Successfully built the docker image %q.\n", imageName)
+
+	return nil
+}
+
+// Site build the documentation site using mdbook
+func Site() error {
+	fmt.Println("Building the documentation site...")
+
+	if err := sh.Run(
+		"mdbook",
+		"clean",
+		"--dest-dir",
+		mdbookBuildDir,
+		mdbookProjectDir,
+	); err != nil {
+		return fmt.Errorf("error cleaning the build directory: %w", err)
+	}
+
+	if err := sh.Run(
+		"mdbook",
+		"build",
+		"--dest-dir",
+		mdbookBuildDir,
+		mdbookProjectDir,
+	); err != nil {
+		return fmt.Errorf("error building the site: %w", err)
+	}
+
+	fmt.Println("Successfully built the documentation site.")
 
 	return nil
 }

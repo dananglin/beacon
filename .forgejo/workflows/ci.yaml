@@ -28,7 +28,7 @@ jobs:
       BEACON_FAIL_ON_FORMATTING: "1"
     steps:
     - name: "Checkout the repository"
-      uses: "https://github.com/taiki-e/checkout-action@699545516363ce4a3728c1cb579dd77bfbf1d7f3" # 2025-10-11
+      uses: "https://github.com/taiki-e/checkout-action@v1.4.0" # 2026-01-25
     - name: "Run tests"
       run: "go tool -modfile=tools/tools.mod mage -v test"
     - name: "Run gosec"

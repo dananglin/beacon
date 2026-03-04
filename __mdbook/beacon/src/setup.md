@@ -1,32 +1,28 @@
-+++
-title = "Setup Guide"
-description = "A complete guide on how to set up your own Beacon instance to sign in with your own domain."
-weight = 1
-slug = "setup-guide"
-template = "project-page.html"
-+++
 <!--
-SPDX-FileCopyrightText: 2024 Dan Anglin <d.n.i.anglin@gmail.com>
+SPDX-FileCopyrightText: 2025 Dan Anglin <d.n.i.anglin@gmail.com>
 
 SPDX-License-Identifier: CC-BY-4.0
 -->
+# Setup Guide
 
-# Tutorial
+## Summary
 
-This tutorial will go through the process of building and deploying an instance of Beacon.
+This setup guide will go through the process of building and deploying an instance of Beacon.
 
-In this example scenario, I have a domain and a personal static website at `https://dananglin.example` and I want
-to deploy an instance of Beacon at `https://auth.dananglin.example` so that I can sign into client sites with my
-domain with IndieAuth.
+In this example scenario, I have a domain and a personal static website hosted at `https://dananglin.example` and
+I want to deploy an instance of Beacon at `https://auth.dananglin.example` so that I can sign into client sites
+with my domain using IndieAuth.
+
+----
 
 ## Requirements
 
 ### Build requirements
 
-The following tools are needed to build the binary:
+The following tools are needed to build the application:
 
 - **Git:** Required for cloning the repository. Please go [here](https://git-scm.com/downloads) for instructions on how to download Git for your repository.
-- **Go:** A minimum version of Go 1.25.3 is required for installing Beacon. Please go [here](https://go.dev/dl/) to download the latest version.
+- **Go:** A minimum version of Go 1.25.6 is required for installing Beacon. Please go [here](https://go.dev/dl/) to download the latest version.
 - **Mage (optional):** The project includes mage targets for building the binary and docker image. The main advantage of using mage over just using `go build` is that the build information is built into the binary during compilation. You can visit the [Mage website](https://magefile.org/) for instructions on how to install Mage.
 
 ### Deployment requirements
@@ -35,6 +31,8 @@ The following tools are needed to build the binary:
 - A reverse proxy (e.g. [Caddy](https://caddyserver.com/)) that can perform TLS termination with a valid certificate.
 
 This tutorial assumes that you have both the DNS record for the domain and the reverse proxy already set up.
+
+----
 
 ## Build
 
@@ -52,18 +50,22 @@ If you have mage installed you can build the binary with:
 mage clean build
 ```
 
+This will build the binary to the `__build` directory.
+You can install the binary to one of the directories in your `PATH`.
+
 You can set the following environment variables when building with Mage:
 
 | Environment variable | Description |
 |----------------------|-------------|
-| `BEACON_BUILD_REBUILD_ALL` | Set this to `"1"` to rebuild all packages even if they are already up-to-date.<br>(i.e. `go build -a ...`)|
-| `BEACON_BUILD_VERBOSE` | Set this to `"1"` to enable verbose logging when building the binary.<br>(i.e. `go build -v ...`)|
+| **BEACON_BUILD_REBUILD_ALL** | Set this to `"1"` to rebuild all packages even if they are already up-to-date.<br>(i.e. `go build -a ...`)|
+| **BEACON_BUILD_VERBOSE** | Set this to `"1"` to enable verbose logging when building the binary.<br>(i.e. `go build -v ...`)|
+| **BEACON_APP_NAME** | Use this variable if you want to build the binary with a different name.<br>By default the name is set to `beacon`. |
 
 #### Build with go
 
-Otherwise you can build the binary with `go build`:
+Alternatively you can build the binary with `go build`.
 ```bash
-go build -a -ldflags="-s -w" -o ./__build/beacon .
+go build -a -trimpath -ldflags="-s -w" -o ./__build/beacon .
 ```
 
 This will build the binary to the `__build` directory.
@@ -82,8 +84,8 @@ You can set the following environment variables when building with Mage:
 
 | Environment variable | Description |
 |----------------------|-------------|
-| `BEACON_DOCKER_IMAGE_NAME` | Use this to specify the name of the docker image. |
-| `BEACON_DOCKERFILE` | Use this to specify a different Dockerfile.<br>By default the `Dockerfile` is used. |
+| **BEACON_DOCKER_IMAGE_NAME** | Use this to specify the name of the docker image. |
+| **BEACON_DOCKERFILE** | Use this to specify a different Dockerfile.<br>By default the `Dockerfile` is used. |
 
 If you don't wish to use mage then you can build the docker image using `docker build`.
 Ensure that you've built the binary before building the docker image.
@@ -91,13 +93,16 @@ Ensure that you've built the binary before building the docker image.
 docker build -t localhost/beacon:latest .
 ```
 
+----
+
 ## Configure
 
 ### Create your configuration file
 
 You'll need to create a JSON file to configure your Beacon instance.
-You can copy the example configuration [here](../example/config.json) and edit for your setup.
-Please refer to the [configuration reference](@/projects/beacon/02_configuration.md) for help with your configuration.
+You can copy the example configuration
+[here](https://codeberg.org/dananglin/beacon/src/branch/main/example/config.json) and edit for your setup.
+Please refer to the [configuration reference](configuration.md) to help with your configuration.
 
 ### Generate your JWT secret
 
@@ -117,6 +122,7 @@ Once you've generated the secret add it to your configuration.
     "bindAddress": "0.0.0.0",
     "port": 8080,
     "domain": "auth.dananglin.example",
+    "gracefulShutdownTimeout": 30,
     "database": {
         "path": "./data/beacon.db"
     },
@@ -127,6 +133,8 @@ Once you've generated the secret add it to your configuration.
 }
 ```
 
+----
+
 ## Deploy
 
 ### Run the binary
@@ -134,14 +142,14 @@ Once you've generated the secret add it to your configuration.
 Here's an example script to run the binary.
 
 ```bash
-mkdir data
+mkdir -p data
 beacon serve --config config.json
 ```
 
 ### Run the docker image
 
 ```bash
-mkdir data
+mkdir -p data
 docker run -d \
     -v ./config.json:/config.json \
     -v ./data:/data \
@@ -151,16 +159,23 @@ docker run -d \
     localhost/beacon:latest serve --config=/config.json
 ```
 
-Once you have Beacon running, ensure that your reverse proxy and DNS records are routing traffic to your VM or Docker container.
+Once you have your Beacon instance running,
+ensure that your reverse proxy and DNS records are routing traffic to the IP address and
+port that your instance is bound to.
+
+----
 
 ## Setup your profile
 
-Open your favourite browser and go to the URL of your Beacon instance.
+Open your favourite web browser and go to the URL of your Beacon instance.
 You'll be presented with a form to set up your profile.
+
+![Example setup form](assets/setup.png "Example setup form")
 
 ### Profile ID and password
 
-The `Profile ID` (a.k.a your Profile URL) is the URL of your domain or website. A valid profile ID must follow the following requirements:
+The `Profile ID` (a.k.a your Profile URL) is the URL of your domain or website.
+A valid profile ID must follow the below requirements:
 
 - It must have either the `https` or `http` scheme.
 - It must contain a path component (`/` is a valid path).
@@ -170,7 +185,8 @@ The `Profile ID` (a.k.a your Profile URL) is the URL of your domain or website. 
 - It must not contain a port.
 - It must not be a IPv4 or IPv6 address.
 
-You can view the requirements in the [User Profile URL](https://indieauth.spec.indieweb.org/#user-profile-url) section of the IndieAuth specification as well as examples of valid and invalid URLs.
+You can view the requirements in the [User Profile URL](https://indieauth.spec.indieweb.org/#user-profile-url)
+section of the IndieAuth specification as well as examples of valid and invalid URLs.
 
 Before creating your profile, Beacon validates the value of your profile ID against the above requirements and [canonicalizes](https://indieauth.spec.indieweb.org/#url-canonicalization) it before setting it as your profile ID.
 For example `bobsmith.example` will be canonicalized to `https://bobsmith.example/`.
@@ -189,33 +205,23 @@ These are not required for this setup and you can update them after you've creat
 
 See the [Profile Information](https://indieauth.spec.indieweb.org/#profile-information) section of the IndieAuth specification to see more information about the profile information.
 
-<div style="text-align:center">
-<img src="/projects/beacon/setup.png"
-     alt="Example setup form"
-     width="495"
-     height="540">
-</div>
-
 Once you have entered your details click the `Create profile` button.
 You'll be redirected to the login page where you can sign into Beacon.
 
-## Update your profile
+### Updating your profile
 
 Once you've signed into Beacon you'll be presented with a page with your profile information which you can
 update at any time.
 
-<div style="text-align:center">
-<img src="/projects/beacon/profile.png"
-     alt="Example setup form"
-     width="554"
-     height="409">
-</div>
+![Example profile page](assets/profile.png "Example profile page")
+
+----
 
 ## Update your domain or website
 
 Now that you've set up your profile in Beacon, you'll need to update your website so that IndieAuth clients can
 discover your instance's authorization and token endpoint. According to the IndieAuth specification, clients
-should discover these using the `indieauth-metadata` endpoint however older clients may search for the
+should discover these using the `indieauth-metadata` endpoint however older clients may instead search for the
 `authorization_endpoint` and `token_endpoint` URLs in your site's HTML document.
 
 See the [Discovery by Clients](https://indieauth.spec.indieweb.org/#discovery-by-clients) section of the specification for more information on how clients discover the endpoints.
@@ -290,15 +296,19 @@ Alternatively to configuring the HTTP header you can specify the `indieauth-meta
 Example:
 
 ```html
-<link rel="indieauth-metadata" href="https://auth.dananglin.example/.well-known/oauth-authorization-server">
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <link rel="indieauth-metadata" href="https://auth.dananglin.example/.well-known/oauth-authorization-server">
+    </head>
+</html>
 ```
 
 ### Set the authorization_endpoint and token_endpoint link tag
 
 The IndieAuth specification recommends setting the `authorization_endpoint` and `token_endpoint` link tags for backwards compatibility with older clients.
 Newer clients may also look for these if they are unable to find the `indieauth-metadata` endpoint for whatever reason.
-
-Note that the recommendation for looking for these may be removed from the specification once the use of the `indieauth-metadata` endpoint is widely supported.
 
 Example:
 
@@ -313,20 +323,22 @@ Example:
 </html>
 ```
 
+> [!NOTE]
+> The recommendation for looking for the authorization endpoint and token endpoint link tags may be removed from the specification once the use of the `indieauth-metadata` endpoint is widely supported.
+
+----
+
 ## Sign into an IndieAuth client
 
-<div style="text-align:center">
-<img src="/projects/beacon/consent_form.png"
-     alt="Example consent form"
-     width="608"
-     height="300">
-</div>
+![Example consent form](assets/consent_form.png "Example consent form")
 
-Once you have everything set up, you can sign into an IndieAuth client (e.g. [IndieLogin.com](https://indielogin.com/)) with your own domain or website.
-The client will ask you to enter your domain and then redirect you to your Beacon instance where you'll need to sign in and authorize the client to sign
-you into their service using your domain as your identity. 
+Once you have everything set up, you can sign into an IndieAuth client
+(e.g. [IndieLogin.com](https://indielogin.com/)) with your own domain or website.
+The client will ask you to enter your domain and then redirect you to your Beacon instance where you'll need
+to sign in and authorize the client to sign you into their service using your domain as your identity. 
 
 The client's authorization request may include additional scopes such as:
+
 - `profile` - This will allow the client to view your display name, profile URL and photo URL.
 - `email` - This will allow the client to view your email address.
 

@@ -21,7 +21,7 @@ with the `main` branch synced to the following forges:
 
 ## Full documentation
 
-The project's documentation can be found [here](https://dananglin.me.uk/projects/beacon/).
+The project's documentation can be found at <https://projects.dananglin.me.uk/beacon/>.
 
 ## Licensing
 

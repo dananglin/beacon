@@ -4,6 +4,7 @@
 
 /__build/*
 !/__build/.gitkeep
+/__mdbook/beacon/book/*
 /.environment/*
 /internal/database/testdata/*
 !/internal/database/testdata/.gitkeep

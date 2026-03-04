@@ -20,6 +20,7 @@ pkgs.mkShellNoCC {
     go
     golangci-lint
     gopls
+    mdbook
     reuse
     tmux
   ];

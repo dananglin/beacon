@@ -1,0 +1,31 @@
+## SPDX-FileCopyrightText: 2026 2024 Dan Anglin <d.n.i.anglin@gmail.com>
+##
+## SPDX-License-Identifier: AGPL-3.0-only
+[book]
+title       = "Project Beacon"
+description = "A standalone IndieAuth provider"
+authors     = ["Dan Anglin"]
+language    = "en"
+
+[build]
+build-dir      = "book"
+create-missing = false
+
+[output.html]
+default-theme        = "coal"
+preferred-dark-theme = "coal"
+site-url             = "/beacon/"
+git-repository-url   = "https://codeberg.org/dananglin/beacon.git"
+git-repository-icon  = "fas-code-fork"
+no-section-label     = true
+
+[output.html.search]
+enable = false
+
+[output.html.print]
+enable     = true
+page-break = true
+
+[output.html.fold]
+enable = false
+level  = 0
