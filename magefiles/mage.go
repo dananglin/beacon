@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2024 2024 Dan Anglin <d.n.i.anglin@gmail.com>
+// SPDX-FileCopyrightText: 2026 Dan Anglin <d.n.i.anglin@gmail.com>
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 
@@ -25,8 +25,6 @@ const (
 	toolsModFile         = "./tools/tools.mod"
 	defaultInstallPrefix = "/usr/local"
 	defaultDockerfile    = "Dockerfile"
-	mdbookProjectDir     = "__mdbook/beacon"
-	mdbookBuildDir       = "__build/site"
 
 	envInstallPrefix    = "BEACON_INSTALL_PREFIX"
 	envTestVerbose      = "BEACON_TEST_VERBOSE"
