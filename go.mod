@@ -11,7 +11,7 @@ require (
 	github.com/magefile/mage v1.15.0
 	go.etcd.io/bbolt v1.4.3
 	golang.org/x/crypto v0.48.0
-	willnorris.com/go/microformats v1.2.1-0.20240301064101-b5d1b9d2120e
+	willnorris.com/go/microformats v1.2.1-0.20260218044424-22f0c2eff25b
 )
 
 require (
