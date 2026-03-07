@@ -22,7 +22,5 @@ golang.org/x/sys v0.41.0 h1:Ivj+2Cp/ylzLiEU89QhWblYnOE9zerudt9Ftecq2C6k=
 golang.org/x/sys v0.41.0/go.mod h1:OgkHotnGiDImocRcuBABYBEXf8A9a87e/uXjp9XT3ks=
 gopkg.in/yaml.v3 v3.0.1 h1:fxVm/GzAzEWqLHuvctI91KS9hhNmmWOoWu0XTYJS7CA=
 gopkg.in/yaml.v3 v3.0.1/go.mod h1:K4uyk7z7BCEPqu6E+C64Yfv1cQ7kz7rIZviUmN+EgEM=
-willnorris.com/go/microformats v1.2.1-0.20240301064101-b5d1b9d2120e h1:TRIOwo0NxN4KVSgYlYmiQktd9I96YgZ3942/JVzhwTM=
-willnorris.com/go/microformats v1.2.1-0.20240301064101-b5d1b9d2120e/go.mod h1:zzo0hFA/E/nl1ZAjXiXA7KCKwCTdgBU+7HXltGgHeGA=
 willnorris.com/go/microformats v1.2.1-0.20260218044424-22f0c2eff25b h1:n8RVQUhmZGjwbu0/dI7kacH0crPz8HFO3RXwdxaLcto=
 willnorris.com/go/microformats v1.2.1-0.20260218044424-22f0c2eff25b/go.mod h1:23xy5rD4EnQZdew0agfgI9+YcrCXaK5jb3WVyil/2+Y=

@@ -17,7 +17,7 @@ in
 pkgs.mkShellNoCC {
   packages = with pkgs; [
     git
-    go
+    go_1_26
     golangci-lint
     gopls
     mdbook
