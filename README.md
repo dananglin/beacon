@@ -14,10 +14,11 @@ This project is currently in early stages of development so there may be breakin
 
 ## Development
 
-This project is actively developed in [Code Flow](https://codeflow.dananglin.me.uk/apollo/beacon)
+This project is actively developed in [**Code Flow**](https://codeflow.dananglin.me.uk/apollo/beacon.git)
 with the `main` branch synced to the following forges:
 
-- [**Codeberg**](https://codeberg.org/dananglin/beacon)
+- [**Codeberg**](https://codeberg.org/dananglin/beacon.git)
+- [**GitHub**](https://github.com/dananglin/beacon.git) _(read only)_
 
 ## Full documentation
 
