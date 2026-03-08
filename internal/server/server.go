@@ -112,14 +112,23 @@ func (s *Server) Serve() error {
 		}
 	}()
 
-	shutdownSignal := make(chan os.Signal, 1)
-	signal.Notify(shutdownSignal, syscall.SIGINT, syscall.SIGTERM)
+	// Create the context for receiving the shutdown signal
+	shutdownSignal, stop := signal.NotifyContext(
+		context.Background(),
+		syscall.SIGINT,
+		syscall.SIGTERM,
+	)
+	defer stop()
 
-	<-shutdownSignal
+	<-shutdownSignal.Done()
+	stop()
 
 	slog.Info("Received the signal to shutdown Beacon.")
 
-	ctx, cancel := context.WithTimeout(context.Background(), s.gracefulShutdownTimeout)
+	ctx, cancel := context.WithTimeout(
+		context.Background(),
+		s.gracefulShutdownTimeout,
+	)
 	defer cancel()
 
 	if err := s.shutdown(ctx); err != nil {
