@@ -21,6 +21,7 @@ func TestGetMetadataFromHTML(t *testing.T) {
 	t.Run("Discovery via HTML", testGetMetadataFromHTML)
 	t.Run("Discovery via JSON", testGetMetadataFromJSON)
 	t.Run("Bad status code from client", testBadStatusCode)
+	t.Run("The client's attempt at a redirection", testClientAttemptedRedirection)
 }
 
 func testGetMetadataFromHTML(t *testing.T) {
@@ -179,6 +180,39 @@ func testBadStatusCode(t *testing.T) {
 	} else {
 		t.Logf(
 			"Expected error received for bad status code.\ngot: %q",
+			err.Error(),
+		)
+	}
+}
+
+func testClientAttemptedRedirection(t *testing.T) {
+	t.Parallel()
+
+	testClient := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		http.Redirect(writer, request, "https://example.com", http.StatusMovedPermanently)
+	}))
+	defer testClient.Close()
+
+	_, err := discovery.FetchClientMetadata(context.Background(), testClient.URL, "http://auth.testserver.example/")
+	if err == nil {
+		t.Fatalf(
+			"FAILED test %s: Did not receive an error for the client's attempt at a redirection.",
+			t.Name(),
+		)
+	}
+
+	wantErr := discovery.AttemptedRedirectionError{}
+
+	if !errors.As(err, &wantErr) {
+		t.Errorf(
+			"FAILED test %s: Unexpected error received for the client's attempt at a redirection.\nwant something like: %q\ngot: %q",
+			t.Name(),
+			wantErr.Error(),
+			err.Error(),
+		)
+	} else {
+		t.Logf(
+			"Expected error received for the client's attempt at a redirection.\ngot: %q",
 			err.Error(),
 		)
 	}

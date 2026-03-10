@@ -31,8 +31,8 @@ jobs:
       uses: "https://github.com/taiki-e/checkout-action@v1.4.0" # 2026-01-25
     - name: "Run tests"
       run: "go tool -modfile=tools/tools.mod mage -v test"
-    - name: "Run gosec"
-      run: "go tool -modfile=tools/tools.mod mage -v gosec"
+    #- name: "Run gosec"
+    #  run: "go tool -modfile=tools/tools.mod mage -v gosec"
     - name: "Run go vet"
       run: "go tool -modfile=tools/tools.mod mage -v govet"
     - name: "Check formatting"

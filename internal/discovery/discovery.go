@@ -11,6 +11,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strings"
 
 	"codeflow.dananglin.me.uk/apollo/beacon/internal/info"
 	"willnorris.com/go/microformats"
@@ -33,6 +34,15 @@ func (e BadStatusResponseError) Error() string {
 	return fmt.Sprintf("received a bad status from the client: (%d) %s", e.code, e.status)
 }
 
+type AttemptedRedirectionError struct {
+	code   int
+	status string
+}
+
+func (e AttemptedRedirectionError) Error() string {
+	return fmt.Sprintf("the client attempted a redirection: (%d) %s", e.code, e.status)
+}
+
 type ClientIDMetadata struct {
 	ClientID     string   `json:"client_id"`
 	ClientName   string   `json:"client_name"`
@@ -52,15 +62,27 @@ func FetchClientMetadata(ctx context.Context, clientID, issuer string) (ClientID
 		fmt.Sprintf("%s/%s (+%s)", info.ApplicationTitledName, info.BinaryVersion, issuer),
 	)
 
-	client := http.Client{}
+	client := http.Client{
+		// Ensure that the HTTP Client does not follow redirects
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
+	}
 
-	response, err := client.Do(request)
+	response, err := client.Do(request) //#nosec G704 - The URL (a.k.a the Client ID) is validated before fetching the client's metadata.
 	if err != nil {
 		return ClientIDMetadata{}, fmt.Errorf("error getting the response from the client: %w", err)
 	}
 	defer response.Body.Close()
 
-	if response.StatusCode >= http.StatusBadRequest {
+	if response.StatusCode != http.StatusOK {
+		if response.StatusCode >= http.StatusMultipleChoices && response.StatusCode < http.StatusBadRequest {
+			return ClientIDMetadata{}, AttemptedRedirectionError{
+				code:   response.StatusCode,
+				status: response.Status,
+			}
+		}
+
 		return ClientIDMetadata{}, BadStatusResponseError{
 			code:   response.StatusCode,
 			status: response.Status,
@@ -70,12 +92,12 @@ func FetchClientMetadata(ctx context.Context, clientID, issuer string) (ClientID
 	metadata := ClientIDMetadata{}
 	gotContentType := response.Header.Get("Content-Type")
 
-	switch gotContentType {
+	switch strings.ToLower(gotContentType) {
 	case "application/json":
 		if err := json.NewDecoder(response.Body).Decode(&metadata); err != nil {
 			return ClientIDMetadata{}, fmt.Errorf("unable to decode the JSON data: %w", err)
 		}
-	case "text/html", "text/html; charset=UTF-8", "text/html; charset=utf-8":
+	case "text/html", "text/html; charset=utf-8":
 		parsedClientID, err := url.Parse(clientID)
 		if err != nil {
 			return ClientIDMetadata{}, fmt.Errorf("unable to parse the client ID: %w", err)

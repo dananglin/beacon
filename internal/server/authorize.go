@@ -37,8 +37,8 @@ func (s *Server) authorize(writer http.ResponseWriter, request *http.Request, pr
 		return
 	}
 
-	// Ensure that the profile ID in the client's authorisation request matches the authenticated
-	// profile ID.
+	// Ensure that the profile ID in the client's authorisation
+	// request matches the authenticated profile ID.
 	if authReq.Me != "" && authReq.Me != profileID {
 		sendClientError(
 			writer,
@@ -52,8 +52,26 @@ func (s *Server) authorize(writer http.ResponseWriter, request *http.Request, pr
 		return
 	}
 
+	// Validate the client ID before fetching the metadata.
+	if err := discovery.ValidateClientID(authReq.ClientID); err != nil {
+		sendClientError(
+			writer,
+			http.StatusUnauthorized,
+			fmt.Errorf(
+				"client ID validation failed: %w",
+				err,
+			),
+		)
+
+		return
+	}
+
 	// Fetch the client's metadata and use it to validate the authorization request
-	clientMetadata, err := discovery.FetchClientMetadata(request.Context(), authReq.ClientID, s.issuer)
+	clientMetadata, err := discovery.FetchClientMetadata(
+		request.Context(),
+		authReq.ClientID,
+		s.issuer,
+	)
 	if err != nil {
 		sendServerError(
 			writer,
