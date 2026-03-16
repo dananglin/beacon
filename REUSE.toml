@@ -8,7 +8,7 @@ SPDX-PackageSupplier         = "Dan Anglin <d.n.i.anglin@gmail.com>"
 SPDX-PackageDownloadLocation = "https://codeflow.dananglin.me.uk/apollo/beacon"
 
 [[annotations]]
-path = ["internal/server/ui/static/htmx/htmx.min.js"]
+path = ["internal/ui/static/htmx/htmx.min.js"]
 precedence              = "override"
 SPDX-FileCopyrightText  = "NONE"
 SPDX-License-Identifier = "0BSD"

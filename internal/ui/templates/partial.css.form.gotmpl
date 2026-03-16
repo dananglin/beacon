@@ -1,0 +1,47 @@
+{{/*
+     SPDX-FileCopyrightText: 2026 Dan Anglin <d.n.i.anglin@gmail.com>
+     SPDX-License-Identifier: AGPL-3.0-only
+*/}}
+{{ define "form.css" }}
+label.field {
+    font-size: 24px;
+    color: DarkSlateGrey;
+}
+label.error {
+    color: Red;
+    font-size: 16px;
+    font-style: italic;
+}
+
+input {
+    width: 100%;
+    padding: 10px 0px;
+    box-sizing: border-box;
+    font-size: 18px;
+}
+input[type=text],
+input[type=password],
+input[type=url],
+input[type=email] {
+    background-color: var(--default-background-color);
+    border-style: none none solid none;
+    border-color: var(--default-border-color);
+    border-radius: 0px;
+    border-width: 1px;
+    margin-bottom: 30px;
+    outline: none;
+}
+input[type=text]:focus,
+input[type=password]:focus,
+input[type=url]:focus,
+input[type=email]:focus {
+    border-color: MediumSeaGreen;
+}
+
+button.button_form {
+    background-color: DarkSlateGrey;
+}
+button.button_form:hover {
+    background-color: var(--button-hover-color);
+}
+{{ end }}

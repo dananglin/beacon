@@ -5,6 +5,7 @@
 package server
 
 import (
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -13,33 +14,83 @@ import (
 
 	"codeflow.dananglin.me.uk/apollo/beacon/internal/auth"
 	"codeflow.dananglin.me.uk/apollo/beacon/internal/database"
+	"codeflow.dananglin.me.uk/apollo/beacon/internal/info"
 	"codeflow.dananglin.me.uk/apollo/beacon/internal/utilities"
 )
+
+type setupPage struct {
+	Title          string
+	FailureMessage string
+	ProfileID      string
+	DisplayName    string
+	Email          string
+	URL            string
+	PhotoURL       string
+	FieldErrors    map[string]string
+}
+
+type setupForm struct {
+	profileID         string
+	password          string
+	confirmedPassword string
+	profile           struct {
+		displayName string
+		url         string
+		email       string
+		photoURL    string
+	}
+}
+
+func (f *setupForm) valid() (map[string]string, bool) {
+	fieldErrors := make(map[string]string)
+
+	canonicalisedProfielID, err := utilities.ValidateAndCanonicalizeURL(strings.TrimSpace(f.profileID), false)
+	if err != nil {
+		slog.Error("profile ID validation failed", "error", err.Error())
+
+		fieldErrors["ProfileID"] = "Please enter a valid domain or website"
+
+		return fieldErrors, false
+	} else {
+		f.profileID = canonicalisedProfielID
+	}
+
+	if utf8.RuneCountInString(f.password) < 8 {
+		fieldErrors["Password"] = "The password must be at least 8 characters long"
+
+		return fieldErrors, false
+	}
+
+	if f.password != f.confirmedPassword {
+		fieldErrors["Password"] = "Your passwords do not match"
+		fieldErrors["ConfirmedPassword"] = "Your passwords do not match"
+
+		return fieldErrors, false
+	}
+
+	return nil, true
+}
 
 func (s *Server) setup(writer http.ResponseWriter, request *http.Request) {
 	dbInitialized, err := database.Initialized(s.boltdb)
 	if err != nil {
 		sendServerError(
 			writer,
-			fmt.Errorf("unable to check if the database has been initialized or not: %w", err),
+			fmt.Errorf("error checking if the database has been initialized or not: %w", err),
 		)
 
 		return
 	}
 
 	if dbInitialized {
-		sendClientError(
-			writer,
-			http.StatusForbidden,
-			ErrDatabaseAlreadyInitialized,
-		)
+		http.Redirect(writer, request, "/profile/login", http.StatusSeeOther)
 
 		return
 	}
 
 	switch request.Method {
 	case http.MethodGet:
-		s.getSetupForm(writer, request)
+		s.getSetupPage(writer, request)
 
 		return
 	case http.MethodPost:
@@ -50,32 +101,32 @@ func (s *Server) setup(writer http.ResponseWriter, request *http.Request) {
 		sendClientError(
 			writer,
 			http.StatusMethodNotAllowed,
-			fmt.Errorf("the setup endpoint does not support %s", request.Method),
+			fmt.Errorf("the setup endpoint does not support the %q method", request.Method),
 		)
 
 		return
 	}
 }
 
-func (s *Server) getSetupForm(writer http.ResponseWriter, _ *http.Request) {
-	form := setupForm{
-		ProfileID:         "",
-		Password:          "",
-		ConfirmedPassword: "",
-		Profile: setupFormProfile{
-			DisplayName: "",
-			URL:         "",
-			Email:       "",
-			PhotoURL:    "",
-		},
-		FieldErrors: make(map[string]string),
+func (s *Server) getSetupPage(writer http.ResponseWriter, _ *http.Request) {
+	page := setupPage{
+		Title:          setupPageTitle(),
+		FailureMessage: "",
+		ProfileID:      "",
+		DisplayName:    "",
+		Email:          "",
+		URL:            "",
+		PhotoURL:       "",
+		FieldErrors:    make(map[string]string),
 	}
 
-	generateAndSendHTMLResponse(
+	s.sendHTMLResponse(
 		writer,
 		"setup",
 		http.StatusOK,
-		form,
+		page,
+		nil,
+		nil,
 	)
 }
 
@@ -91,34 +142,67 @@ func (s *Server) setupAccount(writer http.ResponseWriter, request *http.Request)
 	}
 
 	form := setupForm{
-		ProfileID:         request.PostFormValue("profileID"),
-		Password:          request.PostFormValue("password"),
-		ConfirmedPassword: request.PostFormValue("confirmedPassword"),
-		Profile: setupFormProfile{
-			DisplayName: request.PostFormValue("profileDisplayName"),
-			URL:         request.PostFormValue("profileURL"),
-			PhotoURL:    request.PostFormValue("profilePhotoURL"),
-			Email:       request.PostFormValue("profileEmail"),
+		profileID:         request.PostFormValue("profileID"),
+		password:          request.PostFormValue("password"),
+		confirmedPassword: request.PostFormValue("confirmedPassword"),
+		profile: struct {
+			displayName string
+			url         string
+			email       string
+			photoURL    string
+		}{
+			displayName: request.PostFormValue("profileDisplayName"),
+			url:         request.PostFormValue("profileURL"),
+			photoURL:    request.PostFormValue("profilePhotoURL"),
+			email:       request.PostFormValue("profileEmail"),
 		},
-		FieldErrors: make(map[string]string),
 	}
 
-	if validForm := form.validate(); !validForm {
-		generateAndSendHTMLResponse(
+	fieldErrs, valid := form.valid()
+	if !valid {
+		page := setupPage{
+			Title:          setupPageTitle(),
+			FailureMessage: "Invalid form",
+			ProfileID:      form.profileID,
+			DisplayName:    form.profile.displayName,
+			Email:          form.profile.email,
+			URL:            form.profile.url,
+			PhotoURL:       form.profile.photoURL,
+			FieldErrors:    fieldErrs,
+		}
+
+		s.sendHTMLResponse(
 			writer,
 			"setup",
 			http.StatusUnprocessableEntity,
-			form,
+			page,
+			errors.New("invalid form"),
+			nil,
 		)
 
 		return
 	}
 
-	hashedPassword, err := auth.HashPassword(form.Password)
+	hashedPassword, err := auth.HashPassword(form.password)
 	if err != nil {
-		sendServerError(
+		page := setupPage{
+			Title:          setupPageTitle(),
+			FailureMessage: "Invalid form",
+			ProfileID:      form.profileID,
+			DisplayName:    form.profile.displayName,
+			Email:          form.profile.email,
+			URL:            form.profile.url,
+			PhotoURL:       form.profile.photoURL,
+			FieldErrors:    make(map[string]string),
+		}
+
+		s.sendHTMLResponse(
 			writer,
-			fmt.Errorf("unable to hash the password: %w", err),
+			"setup",
+			http.StatusInternalServerError,
+			page,
+			nil,
+			fmt.Errorf("error hashing the password: %w", err),
 		)
 
 		return
@@ -127,16 +211,31 @@ func (s *Server) setupAccount(writer http.ResponseWriter, request *http.Request)
 	profile := database.Profile{
 		HashedPassword: hashedPassword,
 		Information: database.ProfileInformation{
-			Name:     form.Profile.DisplayName,
-			URL:      form.Profile.URL,
-			PhotoURL: form.Profile.PhotoURL,
-			Email:    form.Profile.Email,
+			Name:     form.profile.displayName,
+			URL:      form.profile.url,
+			PhotoURL: form.profile.photoURL,
+			Email:    form.profile.email,
 		},
 	}
 
-	if err := database.Setup(s.boltdb, form.ProfileID, profile); err != nil {
-		sendServerError(
+	if err := database.Setup(s.boltdb, form.profileID, profile); err != nil {
+		page := setupPage{
+			Title:          setupPageTitle(),
+			FailureMessage: "Unable to create your profile",
+			ProfileID:      form.profileID,
+			DisplayName:    form.profile.displayName,
+			Email:          form.profile.email,
+			URL:            form.profile.url,
+			PhotoURL:       form.profile.photoURL,
+			FieldErrors:    make(map[string]string),
+		}
+
+		s.sendHTMLResponse(
 			writer,
+			"setup",
+			http.StatusInternalServerError,
+			page,
+			nil,
 			fmt.Errorf("error setting up the database: %w", err),
 		)
 
@@ -146,17 +245,47 @@ func (s *Server) setupAccount(writer http.ResponseWriter, request *http.Request)
 	// Ensure that the database has been initialized successfully.
 	dbInitialized, err := database.Initialized(s.boltdb)
 	if err != nil {
-		sendServerError(
+		page := setupPage{
+			Title:          setupPageTitle(),
+			FailureMessage: "Unable to create your profile",
+			ProfileID:      form.profileID,
+			DisplayName:    form.profile.displayName,
+			Email:          form.profile.email,
+			URL:            form.profile.url,
+			PhotoURL:       form.profile.photoURL,
+			FieldErrors:    make(map[string]string),
+		}
+
+		s.sendHTMLResponse(
 			writer,
-			fmt.Errorf("unable to check if the database has been initialized or not: %w", err),
+			"setup",
+			http.StatusInternalServerError,
+			page,
+			nil,
+			fmt.Errorf("error checking if the database has been initialized or not: %w", err),
 		)
 
 		return
 	}
 
 	if !dbInitialized {
-		sendServerError(
+		page := setupPage{
+			Title:          setupPageTitle(),
+			FailureMessage: "Unable to create your profile",
+			ProfileID:      form.profileID,
+			DisplayName:    form.profile.displayName,
+			Email:          form.profile.email,
+			URL:            form.profile.url,
+			PhotoURL:       form.profile.photoURL,
+			FieldErrors:    make(map[string]string),
+		}
+
+		s.sendHTMLResponse(
 			writer,
+			"setup",
+			http.StatusInternalServerError,
+			page,
+			nil,
 			ErrDatabaseNotInitialized,
 		)
 
@@ -168,41 +297,6 @@ func (s *Server) setupAccount(writer http.ResponseWriter, request *http.Request)
 	http.Redirect(writer, request, "/profile/login", http.StatusSeeOther)
 }
 
-type setupForm struct {
-	ProfileID         string
-	Password          string
-	ConfirmedPassword string
-	Profile           setupFormProfile
-	FieldErrors       map[string]string
-}
-
-type setupFormProfile struct {
-	DisplayName string
-	URL         string
-	Email       string
-	PhotoURL    string
-}
-
-func (f *setupForm) validate() bool {
-	f.FieldErrors = make(map[string]string)
-
-	canonicalisedProfielID, err := utilities.ValidateAndCanonicalizeURL(strings.TrimSpace(f.ProfileID), false)
-	if err != nil {
-		slog.Error("profile ID validation failed", "error", err.Error())
-
-		f.FieldErrors["ProfileID"] = "Please enter a valid domain or website"
-	} else {
-		f.ProfileID = canonicalisedProfielID
-	}
-
-	minPasswordLength := 8
-	if utf8.RuneCountInString(f.Password) < minPasswordLength {
-		f.FieldErrors["Password"] = "The password must be at least 8 characters long"
-	}
-
-	if f.Password != f.ConfirmedPassword {
-		f.FieldErrors["ConfirmedPassword"] = "Your passwords do not match"
-	}
-
-	return len(f.FieldErrors) == 0
+func setupPageTitle() string {
+	return "Setup - " + info.ApplicationTitledName
 }

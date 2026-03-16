@@ -1,0 +1,11 @@
+{{/*
+     SPDX-FileCopyrightText: 2026 Dan Anglin <d.n.i.anglin@gmail.com>
+     SPDX-License-Identifier: AGPL-3.0-only
+*/}}
+{{ define "nav" }}
+        <ul class="navigation">
+            <li><a {{ if eq .ActiveTab "home" }}class="active"{{ end }} href="/profile/overview">Home</a></li>
+            <li><a {{ if eq .ActiveTab "settings" }}class="active"{{ end }} href="/profile/settings">Settings</a></li>
+            <li style="float:right"><a id="sign_out" hx-post="/profile/logout" hx-trigger="click" hx-swap="none">Sign Out</a></li>
+        </ul>
+{{ end  }}

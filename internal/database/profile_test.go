@@ -39,6 +39,8 @@ func testProfile(boltdb *bolt.DB, testName string) func(t *testing.T) {
 			)
 		}
 
+		var oldUpdatedAt time.Time
+
 		profile := database.Profile{
 			HashedPassword: hashedPassword,
 			CreatedAt:      time.Time{},
@@ -105,6 +107,8 @@ func testProfile(boltdb *bolt.DB, testName string) func(t *testing.T) {
 			)
 		}
 
+		oldUpdatedAt = gotProfile.UpdatedAt
+
 		t.Log("Retrieving the profile's information from the database.")
 
 		gotProfileInfo, err := database.GetProfileInformation(boltdb, profileID)
@@ -120,14 +124,14 @@ func testProfile(boltdb *bolt.DB, testName string) func(t *testing.T) {
 
 		if !reflect.DeepEqual(gotProfileInfo, profile.Information) {
 			t.Errorf(
-				"FAILED test %s: Unexpected profile information received from the database, want:\n%+v\ngot:\n%+v",
+				"FAILED test %s: Unexpected profile information received from the database\nwant: %+v\n got: %+v",
 				testName,
 				profile.Information,
 				gotProfileInfo,
 			)
 		} else {
 			t.Logf(
-				"Expected profile information received from the database, got:\n%+v",
+				"Expected profile information received from the database\ngot: %+v",
 				gotProfileInfo,
 			)
 		}
@@ -160,26 +164,65 @@ func testProfile(boltdb *bolt.DB, testName string) func(t *testing.T) {
 
 		if !reflect.DeepEqual(gotProfile.Information, newProfileInformation) {
 			t.Errorf(
-				"FAILED test %s: Unexpected profile information received from the database, want:\n%+v\ngot:\n%+v",
+				"FAILED test %s: Unexpected profile information received from the database\nwant: %+v\n got: %+v",
 				testName,
 				newProfileInformation,
 				gotProfile.Information,
 			)
 		} else {
 			t.Logf(
-				"Expected profile information received from the database, got:\n%+v",
+				"Expected profile information received from the database\ngot: %+v",
 				gotProfile.Information,
 			)
 		}
 
-		if !gotProfile.UpdatedAt.After(gotProfile.CreatedAt) {
-			t.Errorf(
-				"FAILED test %s: The profile's 'UpdatedAt' field has not been updated",
+		checkProfileUpdateTime(t, testName, gotProfile.UpdatedAt, oldUpdatedAt)
+
+		oldUpdatedAt = gotProfile.UpdatedAt
+
+		t.Log("Updating the profile's password")
+
+		newHashedPassword, err := auth.HashPassword("test_89ebe35d26734e13")
+		if err != nil {
+			t.Fatalf(
+				"FAILED test %s: Unable to create the hashed password: %v",
 				testName,
+				err,
+			)
+		}
+
+		if err := database.UpdateHashedPassword(boltdb, profileID, newHashedPassword); err != nil {
+			t.Fatalf(
+				"FAILED test %s: Received an error after updating the profile's hashed password: %v",
+				testName,
+				err,
+			)
+		}
+
+		gotProfile, err = database.GetProfile(boltdb, profileID)
+		if err != nil {
+			t.Fatalf(
+				"FAILED test %s: Received an error after retrieving the profile from the database: %v",
+				testName,
+				err,
+			)
+		}
+
+		if gotProfile.HashedPassword != newHashedPassword {
+			t.Errorf(
+				"FAILED test %s: Unexpected hashed password received from the database\nwant: %s\n got: %s",
+				testName,
+				newHashedPassword,
+				gotProfile.HashedPassword,
 			)
 		} else {
-			t.Log("The profile's 'UpdatedAt' field has been updated.")
+			t.Logf(
+				"Expected hashed password received from the database\ngot: %s",
+				gotProfile.HashedPassword,
+			)
 		}
+
+		checkProfileUpdateTime(t, testName, gotProfile.UpdatedAt, oldUpdatedAt)
 
 		t.Log("Incrementing the token's profile version by one.")
 
@@ -216,5 +259,18 @@ func testProfile(boltdb *bolt.DB, testName string) func(t *testing.T) {
 				gotTokenVersion,
 			)
 		}
+	}
+}
+
+func checkProfileUpdateTime(t *testing.T, testName string, current, previous time.Time) {
+	t.Helper()
+
+	if !current.After(previous) {
+		t.Errorf(
+			"FAILED test %s: The profile's 'UpdatedAt' field has not been updated",
+			testName,
+		)
+	} else {
+		t.Log("The profile's 'UpdatedAt' field has been updated.")
 	}
 }

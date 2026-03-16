@@ -1,0 +1,41 @@
+{{/*
+     SPDX-FileCopyrightText: 2026 Dan Anglin <d.n.i.anglin@gmail.com>
+     SPDX-License-Identifier: AGPL-3.0-only
+*/}}
+{{ define "overview" }}
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        {{ template "head.html" . }}
+        <script src="/static/htmx/htmx.min.js"></script>
+        <style>
+            {{ template "overview.css" . }}
+        </style>
+    </head>
+
+    <body>
+        {{ template "nav" . }}
+
+        <h1 class="title">Your profile</h1>
+
+        <div class="main profile_id"><p>{{ .ProfileID }}</p></div>
+
+        <div class="main">
+            <h1 id="display_name">Display name</h1>
+            <p>{{ .DisplayName }}</p>
+            <hr>
+
+            <h1 id="email">Email</h1>
+            <p>{{ .Email }}</p>
+            <hr>
+
+            <h1 id="url" >URL</h1>
+            <p>{{ .URL }}</p>
+            <hr>
+
+            <h1 id="photo_url">Photo URL</h1>
+            <p>{{ .PhotoURL}}</p>
+        </div>
+    </body>
+</html>
+{{ end }}

@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 # syntax=docker/dockerfile:1
-FROM gcr.io/distroless/static-debian12
+FROM gcr.io/distroless/static-debian13
 
 COPY ./__build/beacon /usr/local/bin/beacon
 

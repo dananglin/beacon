@@ -20,6 +20,7 @@ import (
 	"codeflow.dananglin.me.uk/apollo/beacon/internal/auth"
 	"codeflow.dananglin.me.uk/apollo/beacon/internal/database"
 	"codeflow.dananglin.me.uk/apollo/beacon/internal/discovery"
+	"codeflow.dananglin.me.uk/apollo/beacon/internal/info"
 	"codeflow.dananglin.me.uk/apollo/beacon/internal/utilities"
 )
 
@@ -101,7 +102,8 @@ func (s *Server) authorize(writer http.ResponseWriter, request *http.Request, pr
 		return
 	}
 
-	dataForHTML := struct {
+	consentPage := struct {
+		Title             string
 		ClientID          string
 		ClientName        string
 		ClientURI         string
@@ -112,6 +114,7 @@ func (s *Server) authorize(writer http.ResponseWriter, request *http.Request, pr
 		State             string
 		Scopes            []string
 	}{
+		Title:             "Consent - " + info.ApplicationTitledName,
 		ClientID:          clientMetadata.ClientID,
 		ClientName:        clientMetadata.ClientName,
 		ClientURI:         clientMetadata.ClientURI,
@@ -123,11 +126,13 @@ func (s *Server) authorize(writer http.ResponseWriter, request *http.Request, pr
 		Scopes:            authReq.Scope,
 	}
 
-	generateAndSendHTMLResponse(
+	s.sendHTMLResponse(
 		writer,
-		"authorization",
+		"consent",
 		http.StatusOK,
-		dataForHTML,
+		consentPage,
+		nil,
+		nil,
 	)
 }
 
@@ -246,7 +251,7 @@ func (s *Server) authorizeAccept(writer http.ResponseWriter, request *http.Reque
 		url.QueryEscape(s.issuer),
 	)
 
-	writer.Header().Add("Hx-Redirect", redirectURL)
+	writer.Header().Set("Hx-Redirect", redirectURL)
 }
 
 func (s *Server) authorizeReject(writer http.ResponseWriter, request *http.Request, _ string) {
@@ -279,7 +284,7 @@ func (s *Server) authorizeReject(writer http.ResponseWriter, request *http.Reque
 		url.QueryEscape(authReq.State),
 	)
 
-	writer.Header().Add("Hx-Redirect", redirectURL)
+	writer.Header().Set("Hx-Redirect", redirectURL)
 }
 
 func (s *Server) profileExchange(writer http.ResponseWriter, data clientRequestData) {

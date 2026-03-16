@@ -1,0 +1,57 @@
+{{/*
+     SPDX-FileCopyrightText: 2026 Dan Anglin <d.n.i.anglin@gmail.com>
+     SPDX-License-Identifier: AGPL-3.0-only
+*/}}
+{{ define "consent" }}
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        {{ template "head.html" . }}
+        <script src="/static/htmx/htmx.min.js"></script>
+        <style>
+            {{ template "consent.css" . }}
+        </style>
+    </head>
+
+    <body>
+        <input type="hidden", name="state", value="{{ .State }}", id="state">
+
+        <h1 class="title">Sign in to {{ .ClientID }}</h1>
+
+        <div class="main">
+            <p>
+            {{- if and (ne .ClientName "") (ne .ClientURI "") -}}
+            <a href="{{ .ClientURI }}">{{ .ClientName }}</a>
+            {{- else -}}
+            <a href="{{ .ClientID }}">{{ .ClientID }}</a>
+            {{- end -}}
+            {{ print "" }}
+            is requesting that you sign in to their app as:</p>
+        </div>
+
+        <div class="main profile_id"><p>{{ .ProfileID }}</p></div>
+
+        <div class="main">
+            {{ if gt (len .Scopes) 0 }}
+            <p>The following scopes are included in this request:</p>
+            <ul>
+                {{ range $scope := .Scopes }}
+                <li>{{ $scope }}</li>
+                {{ end }}
+            </ul>
+            {{ end }}
+
+            <p>Select <span class="highlight">Accept</span> to sign in, or <span class="highlight">Reject</span> to reject the request.</p>
+            <p>You will be redirected to <span class="highlight">{{ .ClientRedirectURI }}</span></p>
+
+            <button class="button_left" id="accept" hx-post="{{ .AcceptURI }}" hx-trigger="click" hx-swap="none", hx-include="#state">
+                Accept
+            </button>
+
+            <button class="button_right" id="reject" hx-post="{{ .RejectURI }}" hx-trigger="click" hx-swap="none", hx-include="#state">
+                Reject
+            </button>
+        </div>
+    </body>
+</html>
+{{ end }}

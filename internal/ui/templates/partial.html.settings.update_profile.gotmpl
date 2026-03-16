@@ -1,0 +1,37 @@
+{{/*
+     SPDX-FileCopyrightText: 2026 Dan Anglin <d.n.i.anglin@gmail.com>
+     SPDX-License-Identifier: AGPL-3.0-only
+*/}}
+{{ define "settings_update_profile_info" }}
+<h1>Update your profile information</h1>
+
+{{ if gt (len .FailureMessage) 0 }}
+<div class="failure">{{ .FailureMessage }}</div>
+{{ end }}
+
+{{ if gt (len .SuccessMessage) 0 }}
+<div class="success">{{ .SuccessMessage }}</div>
+{{ end }}
+
+<form action="/profile/settings/info" method="POST" novalidate>
+    <div>
+        <label class="field">Display name</label><br />
+        <input type="text" name="profileDisplayName" value="{{ .DisplayName }}"><br />
+    </div>
+    <div>
+        <label class="field">URL</label><br />
+        <input type="url" name="profileURL" value="{{ .URL }}"><br />
+    </div>
+    <div>
+        <label class="field">Email</label><br />
+        <input type="email" name="profileEmail" value="{{ .Email }}"><br />
+    </div>
+    <div>
+        <label class="field">Photo URL</label><br />
+        <input type="url" name="profilePhotoURL" value="{{ .PhotoURL }}"><br />
+    </div>
+    <div>
+        <button class="button_left button_form" type="submit">Update profile</button>
+    </div>
+</form>
+{{ end }}

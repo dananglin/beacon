@@ -1,0 +1,121 @@
+{{/*
+     SPDX-FileCopyrightText: 2026 Dan Anglin <d.n.i.anglin@gmail.com>
+     SPDX-License-Identifier: AGPL-3.0-only
+*/}}
+{{ define "base.css" }}
+:root {
+    --default-background-color: Cornsilk;
+    --default-border-color: DarkSlateGrey;
+    --button-hover-color: MediumSeaGreen;
+}
+
+div.main {
+    margin: auto;
+    width: 50%;
+}
+
+div.main h1 {
+    font-size: 24px;
+    color: DarkSlateGrey;
+}
+
+h1.title {
+    text-align: center;
+    margin-top: 50px;
+    margin-bottom: 50px;
+    font-size: 48px;
+}
+
+ul.navigation {
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background-color: DarkSlateGrey;
+}
+ul.navigation li a {
+    display: block;
+    color: white;
+    padding: 14px 16px;
+    text-decoration: none;
+    float: left;
+}
+ul.navigation li a:hover:not(.active) {
+    background-color: #333333;
+}
+ul.navigation li a.active {
+    background-color: MediumSeaGreen;
+}
+#sign_out {
+    cursor: pointer;
+}
+
+body {
+    background-color: var(--default-background-color);
+    font-family: sans-serif;
+    font-size: 18px;
+}
+
+div.profile_id {
+    text-align: center;
+    font-size: 24px;
+    margin-bottom: 50px;
+    border-style: solid none solid none;
+    border-color: var(--default-border-color);
+    border-width: 1px;
+    background-color: BurlyWood;
+    box-shadow:
+      inset 0px 11px 10px -10px SaddleBrown,
+      inset 0px -11px 10px -10px SaddleBrown;
+}
+
+div.failure {
+    background-color: DarkRed;
+    color: White;
+    border-radius: 4px;
+    font-size: 20px;
+    text-align: center;
+    margin-bottom: 20px;
+    padding: 5px;
+}
+
+div.success {
+    background-color: ForestGreen;
+    color: Gainsboro;
+    border-radius: 4px;
+    font-size: 20px;
+    text-align: center;
+    margin-bottom: 20px;
+    padding: 5px;
+}
+
+button {
+    border: none;
+    border-radius: 5px;
+    color: white;
+    padding: 10px 10px;
+    margin: 10px 0;
+    font-size: 20px;
+    width: 45%;
+    cursor: pointer;
+    transition-duration: 0.5s;
+}
+
+button.button_left {
+    float: left;
+}
+
+button.button_right {
+  float: right;
+}
+
+span.highlight {
+    font-family: monospace;
+    font-size: 16px;
+    font-weight: 700;
+    background-color: NavajoWhite;
+    padding: 1px 5px;
+    border: none;
+    border-radius: 5px;
+}
+{{ end }}

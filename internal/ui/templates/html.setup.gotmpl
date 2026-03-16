@@ -6,17 +6,20 @@
 <!DOCTYPE html>
 <html lang="en">
     <head>
-        <meta charset="UTF-8">
-        <title>Setup - Beacon</title>
+        {{ template "head.html" . }}
         <style>
-            {{ template "style.css" . }}
+            {{ template "setup.css" . }}
         </style>
     </head>
 
     <body>
-        <h1>Set up your profile</h1>
+        <h1 class="title">Set up your profile</h1>
 
-        <div class="base">
+        <div class="main setup">
+            {{ if gt (len .FailureMessage) 0 }}
+            <div class="failure">{{ .FailureMessage }}</div>
+            {{ end }}
+
             <form action="/setup" method="POST" novalidate>
                 <div>
                     <label class="field">Profile ID (required)</label><br />
@@ -33,7 +36,7 @@
                     <input type="password" name="password"><br />
                 </div>
                 <div>
-                    <label class="field">Confirm password</label><br />
+                    <label class="field">Confirm password (required)</label><br />
                     {{ with .FieldErrors.ConfirmedPassword }}
                     <label class="error">{{ . }}</label><br />
                     {{ end }}
@@ -41,22 +44,22 @@
                 </div>
                 <div>
                     <label class="field">Profile display name</label><br />
-                    <input type="text" name="profileDisplayName" value="{{ .Profile.DisplayName }}"><br />
-                </div>
-                <div>
-                    <label class="field">Profile URL</label><br />
-                    <input type="text" name="profileURL" value="{{ .Profile.URL }}"><br />
+                    <input type="text" name="profileDisplayName" value="{{ .DisplayName }}"><br />
                 </div>
                 <div>
                     <label class="field">Profile email</label><br />
-                    <input type="email" name="profileEmail" value="{{ .Profile.Email }}"><br />
+                    <input type="email" name="profileEmail" value="{{ .Email }}"><br />
+                </div>
+                <div>
+                    <label class="field">Profile URL</label><br />
+                    <input type="text" name="profileURL" value="{{ .URL }}"><br />
                 </div>
                 <div>
                     <label class="field">Profile photo URL</label><br />
-                    <input type="text" name="profilePhotoURL" value="{{ .Profile.PhotoURL }}"><br />
+                    <input type="text" name="profilePhotoURL" value="{{ .PhotoURL }}"><br />
                 </div>
                 <div>
-                    <input type="submit" value="Create profile">
+                    <button class="button_left button_form" type="submit">Create profile</button>
                 </div>
             </form>
         </div>

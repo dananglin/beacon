@@ -1,0 +1,21 @@
+{{/*
+     SPDX-FileCopyrightText: 2026 Dan Anglin <d.n.i.anglin@gmail.com>
+     SPDX-License-Identifier: AGPL-3.0-only
+*/}}
+{{ define "consent.css" }}
+{{ template "base.css" }}
+
+#accept {
+    background-color: DarkSlateGrey;
+}
+#accept:hover {
+    background-color: var(--button-hover-color);
+}
+
+#reject {
+    background-color: DarkRed;
+}
+#reject:hover {
+    background-color: LightCoral;
+}
+{{ end }}

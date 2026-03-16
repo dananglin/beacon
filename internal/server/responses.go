@@ -7,10 +7,46 @@ package server
 import (
 	"encoding/json"
 	"fmt"
-	"html/template"
 	"log/slog"
 	"net/http"
 )
+
+func (s *Server) sendHTMLResponse(
+	writer http.ResponseWriter,
+	templateName string,
+	statusCode int,
+	data any,
+	clientErr error,
+	serverErr error,
+) {
+	if clientErr != nil {
+		slog.Error(
+			"Client Error: "+clientErr.Error(),
+			"request-id",
+			writer.Header().Get("X-Request-ID"),
+		)
+	}
+
+	if serverErr != nil {
+		slog.Error(
+			"Server Error: "+serverErr.Error(),
+			"request-id",
+			writer.Header().Get("X-Request-ID"),
+		)
+	}
+
+	writer.Header().Set("Content-Type", "text/html; charset=UTF-8")
+	writer.WriteHeader(statusCode)
+
+	if err := s.htmlTemplate.ExecuteTemplate(writer, templateName, data); err != nil {
+		sendServerError(
+			writer,
+			fmt.Errorf("error generating HTML from the template: %w", err),
+		)
+
+		return
+	}
+}
 
 func sendJSONResponse(writer http.ResponseWriter, statusCode int, payload any) {
 	data, err := json.Marshal(payload)
@@ -26,30 +62,6 @@ func sendJSONResponse(writer http.ResponseWriter, statusCode int, payload any) {
 	writer.Header().Set("Content-Type", "application/json")
 	writer.WriteHeader(statusCode)
 	_, _ = writer.Write(data)
-}
-
-func generateAndSendHTMLResponse(writer http.ResponseWriter, templateName string, statusCode int, data any) {
-	tmpl, err := template.New(templateName).ParseFS(templatesFS, templatesFSDir+"/*")
-	if err != nil {
-		sendServerError(
-			writer,
-			fmt.Errorf("error creating the HTML template: %w", err),
-		)
-
-		return
-	}
-
-	writer.Header().Set("Content-Type", "text/html; charset=UTF-8")
-	writer.WriteHeader(statusCode)
-
-	if err := tmpl.Execute(writer, data); err != nil {
-		sendServerError(
-			writer,
-			fmt.Errorf("error generating HTML from the template: %w", err),
-		)
-
-		return
-	}
 }
 
 func sendClientError(writer http.ResponseWriter, statusCode int, err error) {

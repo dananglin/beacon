@@ -1,0 +1,41 @@
+{{/*
+     SPDX-FileCopyrightText: 2026 Dan Anglin <d.n.i.anglin@gmail.com>
+     SPDX-License-Identifier: AGPL-3.0-only
+*/}}
+{{ define "settings" }}
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        {{ template "head.html" . }}
+        <script src="/static/htmx/htmx.min.js"></script>
+        <style>
+            {{ template "settings.css" . }}
+        </style>
+    </head>
+
+    <body>
+        {{ template "nav" . }}
+
+        <h1 class="title">Settings</h1>
+
+        <div class="main profile_id"><p>{{ .ProfileID }}</p></div>
+
+        <div class="settings">
+            <div class="settings_categories">
+                <ul>
+                    <li><a href="/profile/settings/info">Update profile</a></li>
+                    <li><a href="/profile/settings/password">Change password</a></li>
+                </ul>
+            </div>
+
+            <div class="settings_form">
+                {{- if eq .SettingsCategory "password_change" -}}
+                {{ template "settings_change_password" . }}
+                {{- else -}}
+                {{ template "settings_update_profile_info" . }}
+                {{- end -}}
+            </div>
+        </div>
+    </body>
+</html>
+{{ end }}

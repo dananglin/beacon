@@ -41,7 +41,7 @@ type ProfileInformation struct {
 func CreateProfile(boltdb *bolt.DB, profileID string, profile Profile) error {
 	profileExists, err := ProfileExists(boltdb, profileID)
 	if err != nil {
-		return fmt.Errorf("unable to check if the profile already exists in the database: %w", err)
+		return fmt.Errorf("error checking if the profile already exists in the database: %w", err)
 	}
 
 	if profileExists {
@@ -61,15 +61,31 @@ func CreateProfile(boltdb *bolt.DB, profileID string, profile Profile) error {
 func UpdateProfileInformation(boltdb *bolt.DB, profileID string, newProfileInfo ProfileInformation) error {
 	profile, err := getProfile(boltdb, profileID)
 	if err != nil {
-		return fmt.Errorf("unable to get the profile from the database: %w", err)
+		return fmt.Errorf("error retrieving profile from the database: %w", err)
 	}
 
-	timestamp := time.Now()
 	profile.Information = newProfileInfo
-	profile.UpdatedAt = timestamp
+	profile.UpdatedAt = time.Now()
 
 	if err := saveProfile(boltdb, profileID, profile); err != nil {
-		return fmt.Errorf("unable to save the updated profile to the database: %w", err)
+		return fmt.Errorf("error saving the updated profile to the database: %w", err)
+	}
+
+	return nil
+}
+
+// UpdateHashedPassword updates the profile's hashed password.
+func UpdateHashedPassword(boltdb *bolt.DB, profileID string, newHashedPassword string) error {
+	profile, err := getProfile(boltdb, profileID)
+	if err != nil {
+		return fmt.Errorf("error retrieving profile from the database: %w", err)
+	}
+
+	profile.HashedPassword = newHashedPassword
+	profile.UpdatedAt = time.Now()
+
+	if err := saveProfile(boltdb, profileID, profile); err != nil {
+		return fmt.Errorf("error saving the updated profile to the database: %w", err)
 	}
 
 	return nil
@@ -95,7 +111,7 @@ func ProfileExists(boltdb *bolt.DB, profileID string) (bool, error) {
 
 		return nil
 	}); err != nil {
-		return false, fmt.Errorf("unable to check of the profile exists in the bucket: %w", err)
+		return false, fmt.Errorf("error checking the existence of the profile in the bucket: %w", err)
 	}
 
 	return profileExists, nil
@@ -139,7 +155,7 @@ func IncrementTokenVersion(boltdb *bolt.DB, profileID string) error {
 	}
 
 	if err := saveProfile(boltdb, profileID, profile); err != nil {
-		return fmt.Errorf("unable to save the updated profile to the database: %w", err)
+		return fmt.Errorf("error saving the updated profile to the database: %w", err)
 	}
 
 	return nil
@@ -164,12 +180,12 @@ func getProfile(boltdb *bolt.DB, profileID string) (Profile, error) {
 		}
 
 		if err := utilities.GobDecode(bytes.NewBuffer(data), &profile); err != nil {
-			return fmt.Errorf("unable to decode the profile: %w", err)
+			return fmt.Errorf("error decoding the profile: %w", err)
 		}
 
 		return nil
 	}); err != nil {
-		return Profile{}, fmt.Errorf("unable to get the profile from the database: %w", err)
+		return Profile{}, fmt.Errorf("error retrieving the profile from the database: %w", err)
 	}
 
 	return profile, nil
@@ -190,14 +206,14 @@ func saveProfile(boltdb *bolt.DB, profileID string, profile Profile) error {
 		profileBytes, err := utilities.GobEncode(profile)
 		if err != nil {
 			return fmt.Errorf(
-				"unable to encode the user data: %w",
+				"error encoding the user data: %w",
 				err,
 			)
 		}
 
 		if err := bucket.Put(key, profileBytes); err != nil {
 			return fmt.Errorf(
-				"unable to update the user in the %s bucket: %w",
+				"error updating the user in the %s bucket: %w",
 				string(bucketName),
 				err,
 			)

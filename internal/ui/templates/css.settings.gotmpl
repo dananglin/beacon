@@ -1,0 +1,38 @@
+{{/*
+     SPDX-FileCopyrightText: 2026 Dan Anglin <d.n.i.anglin@gmail.com>
+     SPDX-License-Identifier: AGPL-3.0-only
+*/}}
+{{ define "settings.css" }}
+{{ template "base.css" }}
+
+{{ template "form.css" }}
+
+div.settings {
+    display: flex;
+    flex-flow: row wrap;
+    margin: auto;
+    width: 60%;
+}
+
+div.settings div {
+    margin: 10px;
+    padding: 10px;
+}
+
+div.settings div.settings_categories {
+    flex-grow: 1;
+}
+div.settings div.settings_categories ul {
+  list-style-type: none;
+}
+
+div.settings div.settings_categories ul li {
+  display: block;
+}
+
+div.settings div.settings_form {
+    flex-grow: 4;
+    border: 2px solid DarkSlateGrey;
+    border-radius: 2px;
+}
+{{ end }}

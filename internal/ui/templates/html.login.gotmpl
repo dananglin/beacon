@@ -6,21 +6,21 @@
 <!DOCTYPE html>
 <html lang="en">
     <head>
-        <meta charset="UTF-8">
-        <title>Sign in - Beacon</title>
+        {{ template "head.html" . }}
         <style>
-            {{ template "style.css" . }}
+            {{ template "login.css" . }}
         </style>
     </head>
 
     <body>
-        <h1>Sign into your account</h1>
+        <h1 class="title">Sign into your account</h1>
 
-        {{ if .AuthenticationFailure }}
-        <div class="base error">The Profile ID or password is incorrect.</div>
-        {{ end }}
 
-        <div class="base">
+        <div class="main login">
+            {{ if gt (len .FailureMessage) 0 }}
+            <div class="failure">{{ .FailureMessage }}</div>
+            {{ end }}
+
             <form action="/profile/login" method="POST" novalidate>
                 <div>
                     <label class="field">Profile ID</label><br />
@@ -39,7 +39,7 @@
                 <div>
                     <input type="hidden", name="loginType", value="{{ .LoginType }}">
                     <input type="hidden", name="state", value="{{ .State }}">
-                    <input type="submit" value="Sign in">
+                    <button class="button_left button_form" type="submit">Sign in</button>
                 </div>
             </form>
         </div>
