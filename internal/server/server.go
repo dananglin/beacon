@@ -25,8 +25,15 @@ import (
 )
 
 const (
-	activeTabSettings = "settings"
-	activeTabHome     = "home"
+	activeTabSettings string = "settings"
+	activeTabHome     string = "home"
+
+	qKeyLoginType string = "login_type"
+	qKeyProfileID string = "profile_id"
+	qKeyState     string = "state"
+
+	loginTypeProfile   string = "profile"
+	loginTypeIndieauth string = "indieauth"
 )
 
 type (

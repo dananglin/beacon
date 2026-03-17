@@ -158,14 +158,12 @@ func (s *Server) authorizeRedirectToLogin(writer http.ResponseWriter, request *h
 
 	profileID := authRequest.Me
 
-	redirectURL := fmt.Sprintf(
-		"/profile/login?login_type=%s&profile_id=%s&state=%s",
-		loginTypeIndieauth,
-		url.QueryEscape(profileID),
-		encodedState,
-	)
+	query := url.Values{}
+	query.Set(qKeyLoginType, loginTypeIndieauth)
+	query.Set(qKeyProfileID, profileID)
+	query.Set(qKeyState, encodedState)
 
-	http.Redirect(writer, request, redirectURL, http.StatusSeeOther)
+	http.Redirect(writer, request, "/profile/login?"+query.Encode(), http.StatusSeeOther)
 }
 
 type clientRequestData struct {

@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -15,11 +16,6 @@ import (
 	"codeflow.dananglin.me.uk/apollo/beacon/internal/database"
 	"codeflow.dananglin.me.uk/apollo/beacon/internal/info"
 	"codeflow.dananglin.me.uk/apollo/beacon/internal/utilities"
-)
-
-const (
-	loginTypeProfile   = "profile"
-	loginTypeIndieauth = "indieauth"
 )
 
 type loginPage struct {
@@ -53,13 +49,38 @@ func (f *loginForm) valid() (map[string]string, bool) {
 }
 
 func (s *Server) getLoginPage(writer http.ResponseWriter, request *http.Request) {
-	loginType := request.URL.Query().Get("login_type")
-	if loginType == "" {
-		loginType = loginTypeProfile
+	query, err := url.ParseQuery(request.URL.RawQuery)
+	if err != nil {
+		sendClientError(
+			writer,
+			http.StatusBadRequest,
+			fmt.Errorf("error parsing the query string: %w", err),
+		)
 	}
 
-	profileID := request.URL.Query().Get("profile_id")
-	state := request.URL.Query().Get("state")
+	loginType := query.Get(qKeyLoginType)
+	if loginType != loginTypeIndieauth {
+		s.sendHTMLResponse(
+			writer,
+			"login",
+			http.StatusOK,
+			loginPage{
+				ProfileID:      "",
+				LoginType:      loginTypeProfile,
+				State:          "",
+				Title:          loginPageTitle(),
+				FailureMessage: "",
+				FieldErrors:    map[string]string{},
+			},
+			nil,
+			nil,
+		)
+
+		return
+	}
+
+	profileID := query.Get(qKeyProfileID)
+	state := query.Get(qKeyState)
 
 	s.sendHTMLResponse(
 		writer,
@@ -71,7 +92,7 @@ func (s *Server) getLoginPage(writer http.ResponseWriter, request *http.Request)
 			State:          state,
 			Title:          loginPageTitle(),
 			FailureMessage: "",
-			FieldErrors:    make(map[string]string),
+			FieldErrors:    map[string]string{},
 		},
 		nil,
 		nil,
