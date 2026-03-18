@@ -128,59 +128,55 @@ func (s *Server) updateProfileInformation(writer http.ResponseWriter, request *h
 }
 
 type settingsChangePasswordPage struct {
-	ActiveTab            string
-	ProfileID            string
-	CurrentPassword      string
-	NewPassword          string
-	ConfirmedNewPassword string
-	Title                string
-	SettingsCategory     string
-	FailureMessage       string
-	SuccessMessage       string
-	FieldErrors          map[string]string
+	ActiveTab        string
+	ProfileID        string
+	Title            string
+	SettingsCategory string
+	FailureMessage   string
+	SuccessMessage   string
+	FieldErrors      map[string]string
 }
 
-func (p *settingsChangePasswordPage) valid() bool {
-	if utf8.RuneCountInString(p.NewPassword) < 8 {
-		p.FieldErrors["NewPassword"] = "The password must be at least 8 characters long"
-
-		return false
-	}
-
-	if p.NewPassword != p.ConfirmedNewPassword {
-		p.FieldErrors["NewPassword"] = "Your passwords did not match"
-		p.FieldErrors["ConfirmedNewPassword"] = "Your passwords did not match"
-
-		return false
-	}
-
-	if p.NewPassword == p.CurrentPassword {
-		p.FieldErrors["NewPassword"] = "Your new password must be different from your current password"
-
-		return false
-	}
-
-	return true
+type settingsChangePasswordForm struct {
+	currentPassword      string
+	newPassword          string
+	confirmedNewPassword string
 }
 
-func (p *settingsChangePasswordPage) clearFields() {
-	p.CurrentPassword = ""
-	p.NewPassword = ""
-	p.ConfirmedNewPassword = ""
+func (f *settingsChangePasswordForm) valid() (map[string]string, bool) {
+	fieldErrs := make(map[string]string)
+
+	if utf8.RuneCountInString(f.newPassword) < 8 {
+		fieldErrs["NewPassword"] = "The password must be at least 8 characters long"
+
+		return fieldErrs, false
+	}
+
+	if f.newPassword != f.confirmedNewPassword {
+		fieldErrs["NewPassword"] = "Your passwords did not match"
+		fieldErrs["ConfirmedNewPassword"] = "Your passwords did not match"
+
+		return fieldErrs, false
+	}
+
+	if f.newPassword == f.currentPassword {
+		fieldErrs["NewPassword"] = "Your new password must be different from your current password"
+
+		return fieldErrs, false
+	}
+
+	return nil, true
 }
 
 func (s *Server) getUpdatePasswordPage(writer http.ResponseWriter, _ *http.Request, profileID string) {
 	page := settingsChangePasswordPage{
-		ActiveTab:            activeTabSettings,
-		ProfileID:            profileID,
-		CurrentPassword:      "",
-		NewPassword:          "",
-		ConfirmedNewPassword: "",
-		FailureMessage:       "",
-		SuccessMessage:       "",
-		Title:                updateProfilePasswordPageTitle(),
-		SettingsCategory:     settingsPasswordChange,
-		FieldErrors:          make(map[string]string),
+		ActiveTab:        activeTabSettings,
+		ProfileID:        profileID,
+		Title:            updateProfilePasswordPageTitle(),
+		SettingsCategory: settingsPasswordChange,
+		FailureMessage:   "",
+		SuccessMessage:   "",
+		FieldErrors:      map[string]string{},
 	}
 
 	s.sendHTMLResponse(
@@ -194,20 +190,23 @@ func (s *Server) getUpdatePasswordPage(writer http.ResponseWriter, _ *http.Reque
 }
 
 func (s *Server) updateProfilePassword(writer http.ResponseWriter, request *http.Request, profileID string) {
-	page := settingsChangePasswordPage{
-		ActiveTab:            activeTabSettings,
-		ProfileID:            profileID,
-		CurrentPassword:      request.PostFormValue("currentPassword"),
-		NewPassword:          request.PostFormValue("newPassword"),
-		ConfirmedNewPassword: request.PostFormValue("confirmedNewPassword"),
-		Title:                updateProfilePasswordPageTitle(),
-		SettingsCategory:     settingsPasswordChange,
-		FieldErrors:          make(map[string]string),
+	form := settingsChangePasswordForm{
+		currentPassword:      request.PostFormValue("currentPassword"),
+		newPassword:          request.PostFormValue("newPassword"),
+		confirmedNewPassword: request.PostFormValue("confirmedNewPassword"),
 	}
 
-	if valid := page.valid(); !valid {
-		page.clearFields()
-		page.FailureMessage = "Invalid form"
+	fieldErrs, valid := form.valid()
+	if !valid {
+		page := settingsChangePasswordPage{
+			ActiveTab:        activeTabSettings,
+			ProfileID:        profileID,
+			Title:            updateProfilePasswordPageTitle(),
+			SettingsCategory: settingsPasswordChange,
+			FailureMessage:   "Invalid form",
+			SuccessMessage:   "",
+			FieldErrors:      fieldErrs,
+		}
 
 		s.sendHTMLResponse(
 			writer,
@@ -223,8 +222,15 @@ func (s *Server) updateProfilePassword(writer http.ResponseWriter, request *http
 
 	profile, err := database.GetProfile(s.boltdb, profileID)
 	if err != nil {
-		page.clearFields()
-		page.FailureMessage = "Unable change the password"
+		page := settingsChangePasswordPage{
+			ActiveTab:        activeTabSettings,
+			ProfileID:        profileID,
+			Title:            updateProfilePasswordPageTitle(),
+			SettingsCategory: settingsPasswordChange,
+			FailureMessage:   "Unable to change the password",
+			SuccessMessage:   "",
+			FieldErrors:      map[string]string{},
+		}
 
 		s.sendHTMLResponse(
 			writer,
@@ -238,10 +244,17 @@ func (s *Server) updateProfilePassword(writer http.ResponseWriter, request *http
 		return
 	}
 
-	err = auth.CheckPasswordHash(profile.HashedPassword, page.CurrentPassword)
+	err = auth.CheckPasswordHash(profile.HashedPassword, form.currentPassword)
 	if err != nil {
-		page.clearFields()
-		page.FailureMessage = "You are not authorized to change the password"
+		page := settingsChangePasswordPage{
+			ActiveTab:        activeTabSettings,
+			ProfileID:        profileID,
+			Title:            updateProfilePasswordPageTitle(),
+			SettingsCategory: settingsPasswordChange,
+			FailureMessage:   "Unable to authorize the password change",
+			SuccessMessage:   "",
+			FieldErrors:      map[string]string{},
+		}
 
 		s.sendHTMLResponse(
 			writer,
@@ -255,10 +268,17 @@ func (s *Server) updateProfilePassword(writer http.ResponseWriter, request *http
 		return
 	}
 
-	newHashedPassword, err := auth.HashPassword(page.NewPassword)
+	newHashedPassword, err := auth.HashPassword(form.newPassword)
 	if err != nil {
-		page.clearFields()
-		page.FailureMessage = "Unable to change the password"
+		page := settingsChangePasswordPage{
+			ActiveTab:        activeTabSettings,
+			ProfileID:        profileID,
+			Title:            updateProfilePasswordPageTitle(),
+			SettingsCategory: settingsPasswordChange,
+			FailureMessage:   "Unable to change the password",
+			SuccessMessage:   "",
+			FieldErrors:      map[string]string{},
+		}
 
 		s.sendHTMLResponse(
 			writer,
@@ -274,8 +294,16 @@ func (s *Server) updateProfilePassword(writer http.ResponseWriter, request *http
 
 	err = database.UpdateHashedPassword(s.boltdb, profileID, newHashedPassword)
 	if err != nil {
-		page.clearFields()
-		page.FailureMessage = "Unable to change the password"
+		page := settingsChangePasswordPage{
+			ActiveTab:        activeTabSettings,
+			ProfileID:        profileID,
+			Title:            updateProfilePasswordPageTitle(),
+			SettingsCategory: settingsPasswordChange,
+			FailureMessage:   "Unable to change the password",
+			SuccessMessage:   "",
+			FieldErrors:      map[string]string{},
+		}
+
 		s.sendHTMLResponse(
 			writer,
 			"settings",
@@ -288,8 +316,15 @@ func (s *Server) updateProfilePassword(writer http.ResponseWriter, request *http
 		return
 	}
 
-	page.clearFields()
-	page.SuccessMessage = "Password changed successfully"
+	page := settingsChangePasswordPage{
+		ActiveTab:        activeTabSettings,
+		ProfileID:        profileID,
+		Title:            updateProfilePasswordPageTitle(),
+		SettingsCategory: settingsPasswordChange,
+		FailureMessage:   "",
+		SuccessMessage:   "Password changed successfully",
+		FieldErrors:      map[string]string{},
+	}
 
 	s.sendHTMLResponse(
 		writer,
