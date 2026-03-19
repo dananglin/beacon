@@ -174,8 +174,8 @@ func (s *Server) setupRouter() {
 	mux := http.NewServeMux()
 
 	mux.Handle("GET /static/", neuter(http.FileServerFS(ui.StaticFS)))
-	mux.Handle("GET /setup", http.HandlerFunc(s.setup))
-	mux.Handle("POST /setup", parseForm(s.setup))
+	mux.Handle("GET /setup", s.entrypoint(http.HandlerFunc(s.setup)))
+	mux.Handle("POST /setup", s.entrypoint(parseForm(s.setup)))
 	mux.Handle("GET /{$}", s.entrypoint(s.profileAuthorization(redirectRoot, s.profileRedirectToLogin)))
 	mux.Handle("GET /.well-known/oauth-authorization-server", s.entrypoint(http.HandlerFunc(s.getMetadata)))
 	mux.Handle("GET /profile", s.entrypoint(http.HandlerFunc(s.redirectProfile)))

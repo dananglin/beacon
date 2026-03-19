@@ -20,17 +20,11 @@ import (
 	"codeflow.dananglin.me.uk/apollo/beacon/internal/utilities"
 )
 
-// entrypoint is the middleware that acts as the entry point of all requests. The entrypoint
-// assigns each request with a unique ID for troubleshooting and writes an access log when each
-// request is completed.
-func (s *Server) entrypoint(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
-		if !s.dbInitialized {
-			http.Redirect(writer, request, "/setup", http.StatusSeeOther)
-
-			return
-		}
-
+// entrypoint is the middleware that acts as the entry point of all requests.
+// The entrypoint assigns each request with a unique ID for logging and
+// troubleshooting.
+func (s *Server) entrypoint(next http.Handler) http.HandlerFunc {
+	return func(writer http.ResponseWriter, request *http.Request) {
 		requestID := "UNKNOWN"
 		id := make([]byte, 16)
 
@@ -47,8 +41,14 @@ func (s *Server) entrypoint(next http.Handler) http.Handler {
 
 		writer.Header().Set("X-Request-ID", requestID)
 
+		if !s.dbInitialized && (request.URL.EscapedPath() != "/setup") {
+			http.Redirect(writer, request, "/setup", http.StatusSeeOther)
+
+			return
+		}
+
 		next.ServeHTTP(writer, request)
-	})
+	}
 }
 
 // profileAuthorization is a middleware that performs profile authorization before calling
