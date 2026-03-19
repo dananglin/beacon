@@ -25,7 +25,7 @@ import (
 )
 
 func (s *Server) authorize(writer http.ResponseWriter, request *http.Request, profileID string) {
-	encodedState := request.URL.Query().Get("state")
+	encodedState := request.URL.Query().Get(qKeyState)
 
 	authReq, err := s.getClientAuthRequest(&encodedState, request.URL.Query())
 	if err != nil {
@@ -59,7 +59,7 @@ func (s *Server) authorize(writer http.ResponseWriter, request *http.Request, pr
 			writer,
 			http.StatusUnauthorized,
 			fmt.Errorf(
-				"client ID validation failed: %w",
+				"error validating the client ID: %w",
 				err,
 			),
 		)
@@ -120,8 +120,8 @@ func (s *Server) authorize(writer http.ResponseWriter, request *http.Request, pr
 		ClientURI:         clientMetadata.ClientURI,
 		ProfileID:         profileID,
 		ClientRedirectURI: authReq.RedirectURI,
-		AcceptURI:         s.authPath + "/accept",
-		RejectURI:         s.authPath + "/reject",
+		AcceptURI:         pathAuthAccept,
+		RejectURI:         pathAuthReject,
 		State:             encodedState,
 		Scopes:            authReq.Scope,
 	}
@@ -223,23 +223,20 @@ func (s *Server) authorizeAccept(writer http.ResponseWriter, request *http.Reque
 		return
 	}
 
-	// Save code and associated data to the server's cache
+	// Save code and associated data to the server's cache.
 	s.cache.Add(
 		authCode,
 		authRespBytes,
 		time.Now().Add(1*time.Minute),
 	)
 
-	// Construct the authorization response and set it to the header below.
-	redirectURL := fmt.Sprintf(
-		"%s?code=%s&state=%s&iss=%s",
-		authReq.RedirectURI,
-		url.QueryEscape(authCode),
-		url.QueryEscape(authReq.State),
-		url.QueryEscape(s.issuer),
-	)
+	// Construct the query string for the redirect.
+	query := url.Values{}
+	query.Set(qKeyCode, authCode)
+	query.Set(qKeyState, authReq.State)
+	query.Set(qKeyIssuer, s.issuer)
 
-	writer.Header().Set("Hx-Redirect", redirectURL)
+	writer.Header().Set("Hx-Redirect", authReq.RedirectURI+"?"+query.Encode())
 }
 
 func (s *Server) authorizeReject(writer http.ResponseWriter, request *http.Request, _ string) {
@@ -256,13 +253,12 @@ func (s *Server) authorizeReject(writer http.ResponseWriter, request *http.Reque
 		return
 	}
 
-	redirectURL := fmt.Sprintf(
-		"%s?error=access_denied&state=%s",
-		authReq.RedirectURI,
-		url.QueryEscape(authReq.State),
-	)
+	// Construct the query string for the redirect.
+	query := url.Values{}
+	query.Set(qKeyError, "access_denied")
+	query.Set(qKeyState, authReq.State)
 
-	writer.Header().Set("Hx-Redirect", redirectURL)
+	writer.Header().Set("Hx-Redirect", authReq.RedirectURI+"?"+query.Encode())
 }
 
 func (s *Server) profileExchange(writer http.ResponseWriter, data clientRequestData) {
@@ -417,24 +413,13 @@ func (s *Server) getClientAuthRequest(encodedState *string, queryValues url.Valu
 // newClientAuthRequestFromQuery extracts the client's authorization request from the HTTP request's
 // query. An error is returned if one of the required parameters is missing from the query.
 func newClientAuthRequestFromQuery(queryValues url.Values) (clientAuthRequest, error) {
-	const (
-		clientID            = "client_id"
-		codeChallenge       = "code_challenge"
-		codeChallengeMethod = "code_challenge_method"
-		me                  = "me"
-		redirectURI         = "redirect_uri"
-		responseType        = "response_type"
-		scope               = "scope"
-		state               = "state"
-	)
-
 	required := []string{
-		clientID,
-		codeChallenge,
-		codeChallengeMethod,
-		redirectURI,
-		responseType,
-		state,
+		qKeyClientID,
+		qKeyCodeChallenge,
+		qKeyCodeChallengeMethod,
+		qKeyRedirectURI,
+		qKeyResponseType,
+		qKeyState,
 	}
 
 	for ind := range required {
@@ -443,7 +428,7 @@ func newClientAuthRequestFromQuery(queryValues url.Values) (clientAuthRequest, e
 		}
 	}
 
-	scopeStr := queryValues.Get(scope)
+	scopeStr := queryValues.Get(qKeyScope)
 
 	scopes := make([]string, 0)
 
@@ -451,20 +436,20 @@ func newClientAuthRequestFromQuery(queryValues url.Values) (clientAuthRequest, e
 		scopes = strings.Split(scopeStr, " ")
 	}
 
-	canonicalizedClientID, err := utilities.ValidateAndCanonicalizeURL(queryValues.Get(clientID), true)
+	canonicalizedClientID, err := utilities.ValidateAndCanonicalizeURL(queryValues.Get(qKeyClientID), true)
 	if err != nil {
 		return clientAuthRequest{}, fmt.Errorf("error canonicalizing the client ID: %w", err)
 	}
 
 	request := clientAuthRequest{
 		ClientID:            canonicalizedClientID,
-		CodeChallenge:       queryValues.Get(codeChallenge),
-		CodeChallengeMethod: queryValues.Get(codeChallengeMethod),
-		Me:                  queryValues.Get(me),
-		RedirectURI:         queryValues.Get(redirectURI),
-		ResponseType:        queryValues.Get(responseType),
+		CodeChallenge:       queryValues.Get(qKeyCodeChallenge),
+		CodeChallengeMethod: queryValues.Get(qKeyCodeChallengeMethod),
+		Me:                  queryValues.Get(qKeyMe),
+		RedirectURI:         queryValues.Get(qKeyRedirectURI),
+		ResponseType:        queryValues.Get(qKeyResponseType),
 		Scope:               scopes,
-		State:               queryValues.Get(state),
+		State:               queryValues.Get(qKeyState),
 	}
 
 	return request, nil

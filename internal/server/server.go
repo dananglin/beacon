@@ -30,12 +30,27 @@ const (
 	activeTabSettings string = "settings"
 	activeTabHome     string = "home"
 
-	qKeyLoginType string = "login_type"
-	qKeyProfileID string = "profile_id"
-	qKeyState     string = "state"
+	qKeyClientID            string = "client_id"
+	qKeyCode                string = "code"
+	qKeyCodeChallenge       string = "code_challenge"
+	qKeyCodeChallengeMethod string = "code_challenge_method"
+	qKeyError               string = "error"
+	qKeyIssuer              string = "iss"
+	qKeyLoginType           string = "login_type"
+	qKeyMe                  string = "me"
+	qKeyProfileID           string = "profile_id"
+	qKeyRedirectURI         string = "redirect_uri"
+	qKeyResponseType        string = "response_type"
+	qKeyScope               string = "scope"
+	qKeyState               string = "state"
 
 	loginTypeProfile   string = "profile"
 	loginTypeIndieauth string = "indieauth"
+
+	pathAuth       string = "/indieauth/authorize"
+	pathAuthAccept string = pathAuth + "/accept"
+	pathAuthReject string = pathAuth + "/reject"
+	pathToken      string = "/indieauth/token" // #nosec G101 -- This is not hardcoded credentials.
 )
 
 type (
@@ -52,11 +67,9 @@ type (
 		domainName              string
 		jwtSecret               string
 		jwtCookieName           string
-		authPath                string
 		authEndpoint            string
 		issuer                  string
 		tokenEndpoint           string
-		tokenPath               string
 	}
 )
 
@@ -78,9 +91,6 @@ func NewServer(configPath string) (*Server, error) {
 
 	setupLogging(cfg.Log.Level)
 
-	authPath := "/indieauth/authorize"
-	tokenPath := "/indieauth/token" // #nosec G101 -- This is not hardcoded credentials.
-
 	server := Server{
 		httpServer: &http.Server{
 			Addr:              fmt.Sprintf("%s:%d", cfg.BindAddress, cfg.Port),
@@ -93,16 +103,17 @@ func NewServer(configPath string) (*Server, error) {
 		domainName:              cfg.Domain,
 		jwtSecret:               cfg.JWT.Secret,
 		jwtCookieName:           cfg.JWT.CookieName,
-		authPath:                authPath,
-		authEndpoint:            fmt.Sprintf("https://%s%s", cfg.Domain, authPath),
+		authEndpoint:            fmt.Sprintf("https://%s%s", cfg.Domain, pathAuth),
 		issuer:                  fmt.Sprintf("https://%s/", cfg.Domain),
-		tokenPath:               tokenPath,
-		tokenEndpoint:           fmt.Sprintf("https://%s%s", cfg.Domain, tokenPath),
+		tokenEndpoint:           fmt.Sprintf("https://%s%s", cfg.Domain, pathToken),
 	}
 
 	dbInitialized, err := database.Initialized(server.boltdb)
 	if err != nil {
-		return nil, fmt.Errorf("error determining if the database has been initialized or not: %w", err)
+		return nil, fmt.Errorf(
+			"error determining if the database has been initialized or not: %w",
+			err,
+		)
 	}
 
 	server.dbInitialized = dbInitialized
@@ -188,11 +199,11 @@ func (s *Server) setupRouter() {
 	mux.Handle("POST /profile/settings/info", s.entrypoint(parseForm(s.profileAuthorization(s.updateProfileInformation, s.profileRedirectToLogin))))
 	mux.Handle("GET /profile/settings/password", s.entrypoint(s.profileAuthorization(s.getUpdatePasswordPage, s.profileRedirectToLogin)))
 	mux.Handle("POST /profile/settings/password", s.entrypoint(parseForm(s.profileAuthorization(s.updateProfilePassword, s.profileRedirectToLogin))))
-	mux.Handle("GET "+s.authPath, s.entrypoint(s.profileAuthorization(s.authorize, s.authorizeRedirectToLogin)))
-	mux.Handle("POST "+s.authPath, s.entrypoint(parseForm(s.exchangeAuthorization(s.profileExchange))))
-	mux.Handle("POST "+s.authPath+"/accept", s.entrypoint(parseForm(s.profileAuthorization(s.authorizeAccept, nil))))
-	mux.Handle("POST "+s.authPath+"/reject", s.entrypoint(parseForm(s.profileAuthorization(s.authorizeReject, nil))))
-	mux.Handle("POST "+s.tokenPath, s.entrypoint(parseForm(s.exchangeAuthorization(s.tokenExchange))))
+	mux.Handle("GET "+pathAuth, s.entrypoint(s.profileAuthorization(s.authorize, s.authorizeRedirectToLogin)))
+	mux.Handle("POST "+pathAuth, s.entrypoint(parseForm(s.exchangeAuthorization(s.profileExchange))))
+	mux.Handle("POST "+pathAuthAccept, s.entrypoint(parseForm(s.profileAuthorization(s.authorizeAccept, nil))))
+	mux.Handle("POST "+pathAuthReject, s.entrypoint(parseForm(s.profileAuthorization(s.authorizeReject, nil))))
+	mux.Handle("POST "+pathToken, s.entrypoint(parseForm(s.exchangeAuthorization(s.tokenExchange))))
 
 	s.httpServer.Handler = mux
 }

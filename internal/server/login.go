@@ -273,7 +273,7 @@ func (s *Server) authenticate(writer http.ResponseWriter, request *http.Request)
 
 	redirectMap := map[string]string{
 		loginTypeProfile:   "/profile/overview",
-		loginTypeIndieauth: fmt.Sprintf("%s?state=%s", s.authPath, form.state),
+		loginTypeIndieauth: fmt.Sprintf("%s?state=%s", pathAuth, form.state),
 	}
 
 	redirectURL, ok := redirectMap[form.loginType]
