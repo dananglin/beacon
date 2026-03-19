@@ -5,10 +5,16 @@
 package executors
 
 import (
-	"fmt"
+	"errors"
+	"os"
 
 	"codeflow.dananglin.me.uk/apollo/beacon/internal/executors/actions"
 	"codeflow.dananglin.me.uk/apollo/beacon/internal/utilities"
+)
+
+var (
+	errExecution  = errors.New("execution error")
+	errArgParsing = errors.New("args parsing error")
 )
 
 type UnrecognisedActionError struct {
@@ -27,16 +33,24 @@ func Execute(args []string) error {
 
 	actionArgs, err := utilities.ParseArgs(args)
 	if err != nil {
-		return fmt.Errorf("args parsing error: %w", err)
+		_, _ = os.Stderr.WriteString("ERROR: args parsing error: " + err.Error() + "\n")
+
+		return errArgParsing
 	}
 
 	action, ok := actionMap[actionArgs.Name]
 	if !ok {
-		return UnrecognisedActionError{action: actionArgs.Name}
+		err := UnrecognisedActionError{action: actionArgs.Name}
+
+		_, _ = os.Stderr.WriteString("ERROR: " + err.Error() + "\n")
+
+		return err
 	}
 
 	if err := action.Execute(actionArgs.Args); err != nil {
-		return fmt.Errorf("execution error: %w", err)
+		_, _ = os.Stderr.WriteString("ERROR: execution error: " + err.Error() + "\n")
+
+		return errExecution
 	}
 
 	return nil

@@ -6,6 +6,7 @@ package server
 
 import (
 	"bytes"
+	"context"
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
@@ -34,7 +35,12 @@ func (s *Server) entrypoint(next http.Handler) http.Handler {
 		id := make([]byte, 16)
 
 		if _, err := rand.Read(id); err != nil {
-			slog.Error("error creating the request ID.", "error", err.Error())
+			slog.LogAttrs(
+				context.Background(),
+				slog.LevelWarn,
+				"Error creating the request ID",
+				slog.Any("error", err),
+			)
 		} else {
 			requestID = hex.EncodeToString(id)
 		}
@@ -42,8 +48,6 @@ func (s *Server) entrypoint(next http.Handler) http.Handler {
 		writer.Header().Set("X-Request-ID", requestID)
 
 		next.ServeHTTP(writer, request)
-
-		// TODO: Write access log
 	})
 }
 

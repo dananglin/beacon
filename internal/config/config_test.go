@@ -29,6 +29,9 @@ func TestConfig(t *testing.T) {
 				Secret:     "N4N6Zpwq6tCHR3CcvHmnUynQhU6R6dk0wfi3kFV1o9I0OV6l53xRxQlvQA76aYgP",
 				CookieName: "my_jwt_cookie",
 			},
+			Log: config.Log{
+				Level: "info",
+			},
 		},
 		{
 			BindAddress:             "127.0.0.1",
@@ -41,6 +44,9 @@ func TestConfig(t *testing.T) {
 			JWT: config.JWT{
 				Secret:     "vrDFbzgiWEyWn21YLAo0DDVm4pO0CihJhDDZZArxKu0J8w0d-8FtKlt1tCsJFk",
 				CookieName: "beacon_is_great",
+			},
+			Log: config.Log{
+				Level: "error",
 			},
 		},
 	}

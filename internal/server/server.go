@@ -76,6 +76,8 @@ func NewServer(configPath string) (*Server, error) {
 		return nil, fmt.Errorf("error creating the HTML template: %w", err)
 	}
 
+	setupLogging(cfg.Log.Level)
+
 	authPath := "/indieauth/authorize"
 	tokenPath := "/indieauth/token" // #nosec G101 -- This is not hardcoded credentials.
 
@@ -112,10 +114,21 @@ func NewServer(configPath string) (*Server, error) {
 
 func (s *Server) Serve() error {
 	go func() {
-		slog.Info(info.ApplicationName+" is now ready to serve web requests", "address", s.httpServer.Addr)
+		slog.LogAttrs(
+			context.Background(),
+			slog.LevelInfo,
+			info.ApplicationName+" is now ready to serve web requests",
+			slog.String("address", s.httpServer.Addr),
+		)
 
 		if err := s.httpServer.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
-			slog.Error("HTTP server error", "error", err.Error())
+			slog.LogAttrs(
+				context.Background(),
+				slog.LevelError,
+				"HTTP Server error",
+				slog.Any("error", err),
+			)
+
 			os.Exit(1)
 		}
 	}()
@@ -131,7 +144,11 @@ func (s *Server) Serve() error {
 	<-shutdownSignal.Done()
 	stop()
 
-	slog.Info("Received the signal to shutdown Beacon.")
+	slog.LogAttrs(
+		context.Background(),
+		slog.LevelInfo,
+		"Received the signal to shutdown Beacon.",
+	)
 
 	ctx, cancel := context.WithTimeout(
 		context.Background(),
@@ -140,7 +157,14 @@ func (s *Server) Serve() error {
 	defer cancel()
 
 	if err := s.shutdown(ctx); err != nil {
-		return fmt.Errorf("error shutting down Beacon: %w", err)
+		slog.LogAttrs(
+			context.Background(),
+			slog.LevelError,
+			"Error shutting down Beacon.",
+			slog.Any("error", err),
+		)
+
+		return errors.New("server error")
 	}
 
 	return nil
@@ -174,17 +198,49 @@ func (s *Server) setupRouter() {
 }
 
 func (s *Server) shutdown(ctx context.Context) error {
-	slog.Info("Shutting down the HTTP server.")
+	slog.LogAttrs(
+		context.Background(),
+		slog.LevelInfo,
+		"Shutting down the HTTP server.",
+	)
 
 	if err := s.httpServer.Shutdown(ctx); err != nil {
 		return fmt.Errorf("error shutting down the HTTP server: %w", err)
 	}
 
-	slog.Info("Closing the database.")
+	slog.LogAttrs(
+		context.Background(),
+		slog.LevelInfo,
+		"Closing the database.",
+	)
 
 	if err := s.boltdb.Close(); err != nil {
 		return fmt.Errorf("error closing the database: %w", err)
 	}
 
 	return nil
+}
+
+func setupLogging(level string) {
+	var logLevel slog.Level
+
+	switch level {
+	case "debug":
+		logLevel = slog.LevelDebug
+	case "info":
+		logLevel = slog.LevelInfo
+	case "warn":
+		logLevel = slog.LevelWarn
+	case "error":
+		logLevel = slog.LevelError
+	default:
+		logLevel = slog.LevelInfo
+	}
+
+	opts := slog.HandlerOptions{
+		Level: logLevel,
+	}
+
+	logger := slog.New(slog.NewTextHandler(os.Stdout, &opts))
+	slog.SetDefault(logger)
 }

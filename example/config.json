@@ -9,5 +9,8 @@
     "jwt": {
       "secret": "",
       "cookieName": "beacon_is_great"
+    },
+    "log": {
+      "level": "info"
     }
 }

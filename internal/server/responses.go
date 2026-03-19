@@ -5,6 +5,7 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log/slog"
@@ -20,18 +21,22 @@ func (s *Server) sendHTMLResponse(
 	serverErr error,
 ) {
 	if clientErr != nil {
-		slog.Error(
-			"Client Error: "+clientErr.Error(),
-			"request-id",
-			writer.Header().Get("X-Request-ID"),
+		slog.LogAttrs(
+			context.Background(),
+			slog.LevelError,
+			"Client error",
+			slog.Any("error", clientErr),
+			slog.String("request_id", writer.Header().Get("X-Request-ID")),
 		)
 	}
 
 	if serverErr != nil {
-		slog.Error(
-			"Server Error: "+serverErr.Error(),
-			"request-id",
-			writer.Header().Get("X-Request-ID"),
+		slog.LogAttrs(
+			context.Background(),
+			slog.LevelError,
+			"Server error",
+			slog.Any("error", serverErr),
+			slog.String("request_id", writer.Header().Get("X-Request-ID")),
 		)
 	}
 
@@ -68,7 +73,8 @@ func sendClientError(writer http.ResponseWriter, statusCode int, err error) {
 	sendErrorResponse(
 		writer,
 		statusCode,
-		"Client Error: "+err.Error(),
+		"Client error",
+		err,
 	)
 }
 
@@ -76,12 +82,19 @@ func sendServerError(writer http.ResponseWriter, err error) {
 	sendErrorResponse(
 		writer,
 		http.StatusInternalServerError,
-		"Server Error: "+err.Error(),
+		"Server error",
+		err,
 	)
 }
 
-func sendErrorResponse(writer http.ResponseWriter, statusCode int, message string) {
-	slog.Error(message, "request-id", writer.Header().Get("X-Request-ID"))
+func sendErrorResponse(writer http.ResponseWriter, statusCode int, msg string, err error) {
+	slog.LogAttrs(
+		context.Background(),
+		slog.LevelError,
+		msg,
+		slog.Any("error", err),
+		slog.String("request_id", writer.Header().Get("X-Request-ID")),
+	)
 
 	http.Error(writer, http.StatusText(statusCode), statusCode)
 }

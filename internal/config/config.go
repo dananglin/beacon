@@ -31,6 +31,7 @@ type Config struct {
 	GracefulShutdownTimeout int      `json:"gracefulShutdownTimeout"`
 	Database                Database `json:"database"`
 	JWT                     JWT      `json:"jwt"`
+	Log                     Log      `json:"log"`
 }
 
 type Database struct {
@@ -40,6 +41,10 @@ type Database struct {
 type JWT struct {
 	Secret     string `json:"secret"`
 	CookieName string `json:"cookieName"`
+}
+
+type Log struct {
+	Level string `json:"level"`
 }
 
 func NewConfig(path string) (Config, error) {

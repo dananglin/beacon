@@ -8,5 +8,8 @@
     "jwt": {
       "secret": "vrDFbzgiWEyWn21YLAo0DDVm4pO0CihJhDDZZArxKu0J8w0d-8FtKlt1tCsJFk",
       "cookieName": ""
+    },
+    "log": {
+      "level": "error"
     }
 }

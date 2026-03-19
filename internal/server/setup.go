@@ -7,7 +7,6 @@ package server
 import (
 	"errors"
 	"fmt"
-	"log/slog"
 	"net/http"
 	"strings"
 	"unicode/utf8"
@@ -44,15 +43,10 @@ type setupForm struct {
 func (f *setupForm) valid() (map[string]string, bool) {
 	fieldErrors := make(map[string]string)
 
-	canonicalisedProfielID, err := utilities.ValidateAndCanonicalizeURL(strings.TrimSpace(f.profileID), false)
-	if err != nil {
-		slog.Error("profile ID validation failed", "error", err.Error())
-
-		fieldErrors["ProfileID"] = "Please enter a valid domain or website"
+	if strings.TrimSpace(f.profileID) == "" {
+		fieldErrors["ProfileID"] = "This field must not be empty"
 
 		return fieldErrors, false
-	} else {
-		f.profileID = canonicalisedProfielID
 	}
 
 	if utf8.RuneCountInString(f.password) < 8 {
@@ -173,6 +167,36 @@ func (s *Server) setupAccount(writer http.ResponseWriter, request *http.Request)
 		return
 	}
 
+	canonicalisedProfielID, err := utilities.ValidateAndCanonicalizeURL(
+		strings.TrimSpace(form.profileID),
+		false,
+	)
+	if err != nil {
+		page := setupPage{
+			Title:          setupPageTitle(),
+			FailureMessage: "Invalid profile ID",
+			ProfileID:      form.profileID,
+			DisplayName:    form.profile.displayName,
+			Email:          form.profile.email,
+			URL:            form.profile.url,
+			PhotoURL:       form.profile.photoURL,
+			FieldErrors: map[string]string{
+				"ProfileID": "Please enter a valid domain or website",
+			},
+		}
+
+		s.sendHTMLResponse(
+			writer,
+			"setup",
+			http.StatusUnprocessableEntity,
+			page,
+			fmt.Errorf("error validating the profile ID: %w", err),
+			nil,
+		)
+
+		return
+	}
+
 	hashedPassword, err := auth.HashPassword(form.password)
 	if err != nil {
 		page := setupPage{
@@ -208,7 +232,7 @@ func (s *Server) setupAccount(writer http.ResponseWriter, request *http.Request)
 		},
 	}
 
-	if err := database.Setup(s.boltdb, form.profileID, profile); err != nil {
+	if err := database.Setup(s.boltdb, canonicalisedProfielID, profile); err != nil {
 		page := setupPage{
 			Title:          setupPageTitle(),
 			FailureMessage: "Unable to create your profile",

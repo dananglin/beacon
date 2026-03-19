@@ -34,11 +34,11 @@ func (a *Serve) Execute(args []string) error {
 
 	srv, err := server.NewServer(a.configPath)
 	if err != nil {
-		return fmt.Errorf("unable to create the web server: %w", err)
+		return fmt.Errorf("error creating the web server: %w", err)
 	}
 
 	if err := srv.Serve(); err != nil {
-		return fmt.Errorf("web server error: %w", err)
+		return fmt.Errorf("error running the web server: %w", err)
 	}
 
 	return nil

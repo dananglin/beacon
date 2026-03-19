@@ -8,5 +8,8 @@
     "jwt": {
       "secret": "tCHR3CcvHmnUynQh0OV6l53xRxQgP",
       "cookieName": "(Bad),(Cookie),(Name)"
+    },
+    "log": {
+      "level": "info"
     }
 }
