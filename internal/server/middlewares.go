@@ -34,7 +34,7 @@ func (s *Server) entrypoint(next http.Handler) http.Handler {
 		id := make([]byte, 16)
 
 		if _, err := rand.Read(id); err != nil {
-			slog.Error("unable to create the request ID.", "error", err.Error())
+			slog.Error("error creating the request ID.", "error", err.Error())
 		} else {
 			requestID = hex.EncodeToString(id)
 		}
@@ -50,8 +50,8 @@ func (s *Server) entrypoint(next http.Handler) http.Handler {
 // profileAuthorization is a middleware that performs profile authorization before calling
 // the profile handler. If the cookie storing the authorization information is missing then
 // the user is redirected to the login screen.
-func (s *Server) profileAuthorization(next profileHandlerFunc, redirectToLogin http.HandlerFunc) http.Handler {
-	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+func (s *Server) profileAuthorization(next profileHandlerFunc, redirectToLogin http.HandlerFunc) http.HandlerFunc {
+	return func(writer http.ResponseWriter, request *http.Request) {
 		cookie, err := request.Cookie(s.jwtCookieName)
 		if err != nil {
 			if errors.Is(err, http.ErrNoCookie) {
@@ -139,21 +139,11 @@ func (s *Server) profileAuthorization(next profileHandlerFunc, redirectToLogin h
 		writer.Header().Add("Cache-Control", "no-store")
 
 		next(writer, request, data.ProfileID)
-	})
+	}
 }
 
-func (s *Server) exchangeAuthorization(exchange exchangeHandlerFunc) http.Handler {
-	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
-		if err := request.ParseForm(); err != nil {
-			sendClientError(
-				writer,
-				http.StatusBadRequest,
-				fmt.Errorf("error parsing the form: %w", err),
-			)
-
-			return
-		}
-
+func (s *Server) exchangeAuthorization(exchange exchangeHandlerFunc) http.HandlerFunc {
+	return func(writer http.ResponseWriter, request *http.Request) {
 		var (
 			grantType    = request.PostFormValue("grant_type")
 			code         = request.PostFormValue("code")
@@ -277,11 +267,11 @@ func (s *Server) exchangeAuthorization(exchange exchangeHandlerFunc) http.Handle
 
 		// The client is now authorized to complete the required exchange.
 		exchange(writer, initialClientAuthReq)
-	})
+	}
 }
 
-func neuter(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+func neuter(next http.Handler) http.HandlerFunc {
+	return func(writer http.ResponseWriter, request *http.Request) {
 		if strings.HasSuffix(request.URL.Path, "/") {
 			sendClientError(
 				writer,
@@ -293,5 +283,36 @@ func neuter(next http.Handler) http.Handler {
 		}
 
 		next.ServeHTTP(writer, request)
-	})
+	}
+}
+
+// parseForm is a middleware that ensures that the post form in the incoming request is
+// parsed with the enforced limit on the size of the request body.
+func parseForm(next http.HandlerFunc) http.Handler {
+	return http.MaxBytesHandler(
+		http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+			err := request.ParseForm()
+			if err != nil {
+				maxBytesErr := new(http.MaxBytesError)
+				if errors.As(err, &maxBytesErr) {
+					sendClientError(
+						writer,
+						http.StatusRequestEntityTooLarge,
+						errors.New("the form is too large"),
+					)
+
+					return
+				}
+
+				sendClientError(
+					writer,
+					http.StatusInternalServerError,
+					fmt.Errorf("error parsing the request form: %w", err),
+				)
+			}
+
+			next(writer, request)
+		}),
+		maxRequestSize,
+	)
 }

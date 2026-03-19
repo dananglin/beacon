@@ -100,16 +100,6 @@ func (s *Server) getLoginPage(writer http.ResponseWriter, request *http.Request)
 }
 
 func (s *Server) authenticate(writer http.ResponseWriter, request *http.Request) {
-	if err := request.ParseForm(); err != nil {
-		sendClientError(
-			writer,
-			http.StatusBadRequest,
-			fmt.Errorf("error parsing the form: %w", err),
-		)
-
-		return
-	}
-
 	form := loginForm{
 		profileID: request.PostFormValue("profileID"),
 		password:  request.PostFormValue("password"),
@@ -310,7 +300,7 @@ func (s *Server) authenticate(writer http.ResponseWriter, request *http.Request)
 	http.Redirect(writer, request, redirectURL, http.StatusSeeOther)
 }
 
-func (s *Server) logout(writer http.ResponseWriter, request *http.Request, profileID string) {
+func (s *Server) logout(writer http.ResponseWriter, _ *http.Request, profileID string) {
 	if err := database.IncrementTokenVersion(s.boltdb, profileID); err != nil {
 		sendServerError(
 			writer,

@@ -71,16 +71,6 @@ func (s *Server) getUpdateProfileInfoPage(writer http.ResponseWriter, _ *http.Re
 }
 
 func (s *Server) updateProfileInformation(writer http.ResponseWriter, request *http.Request, profileID string) {
-	if err := request.ParseForm(); err != nil {
-		sendClientError(
-			writer,
-			http.StatusBadRequest,
-			fmt.Errorf("error parsing the form: %w", err),
-		)
-
-		return
-	}
-
 	newProfileInfo := database.ProfileInformation{
 		Name:     request.PostFormValue("profileDisplayName"),
 		URL:      request.PostFormValue("profileURL"),
@@ -204,30 +194,6 @@ func (s *Server) getUpdatePasswordPage(writer http.ResponseWriter, _ *http.Reque
 }
 
 func (s *Server) updateProfilePassword(writer http.ResponseWriter, request *http.Request, profileID string) {
-	if err := request.ParseForm(); err != nil {
-		page := settingsChangePasswordPage{
-			ActiveTab:            activeTabSettings,
-			ProfileID:            profileID,
-			CurrentPassword:      "",
-			NewPassword:          "",
-			ConfirmedNewPassword: "",
-			Title:                updateProfilePasswordPageTitle(),
-			SettingsCategory:     settingsPasswordChange,
-			FailureMessage:       "Unable to process the form",
-		}
-
-		s.sendHTMLResponse(
-			writer,
-			"settings",
-			http.StatusUnprocessableEntity,
-			page,
-			fmt.Errorf("error parsing the form: %w", err),
-			nil,
-		)
-
-		return
-	}
-
 	page := settingsChangePasswordPage{
 		ActiveTab:            activeTabSettings,
 		ProfileID:            profileID,

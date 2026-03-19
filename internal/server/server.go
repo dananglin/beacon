@@ -25,6 +25,8 @@ import (
 )
 
 const (
+	maxRequestSize int64 = 32 << 10 // 32KB
+
 	activeTabSettings string = "settings"
 	activeTabHome     string = "home"
 
@@ -149,24 +151,24 @@ func (s *Server) setupRouter() {
 
 	mux.Handle("GET /static/", neuter(http.FileServerFS(ui.StaticFS)))
 	mux.Handle("GET /setup", http.HandlerFunc(s.setup))
-	mux.Handle("POST /setup", http.HandlerFunc(s.setup))
+	mux.Handle("POST /setup", parseForm(s.setup))
 	mux.Handle("GET /{$}", s.entrypoint(s.profileAuthorization(redirectRoot, s.profileRedirectToLogin)))
 	mux.Handle("GET /.well-known/oauth-authorization-server", s.entrypoint(http.HandlerFunc(s.getMetadata)))
 	mux.Handle("GET /profile", s.entrypoint(http.HandlerFunc(s.redirectProfile)))
 	mux.Handle("GET /profile/login", s.entrypoint(http.HandlerFunc(s.getLoginPage)))
-	mux.Handle("POST /profile/login", s.entrypoint(http.HandlerFunc(s.authenticate)))
+	mux.Handle("POST /profile/login", s.entrypoint(parseForm(s.authenticate)))
 	mux.Handle("GET /profile/overview", s.entrypoint(s.profileAuthorization(s.getOverviewPage, s.profileRedirectToLogin)))
-	mux.Handle("POST /profile/logout", s.entrypoint(s.profileAuthorization(s.logout, s.profileRedirectToLogin)))
+	mux.Handle("POST /profile/logout", s.entrypoint(parseForm(s.profileAuthorization(s.logout, s.profileRedirectToLogin))))
 	mux.Handle("GET /profile/settings", s.entrypoint(http.HandlerFunc(s.redirectProfileSettings)))
 	mux.Handle("GET /profile/settings/info", s.entrypoint(s.profileAuthorization(s.getUpdateProfileInfoPage, s.profileRedirectToLogin)))
-	mux.Handle("POST /profile/settings/info", s.entrypoint(s.profileAuthorization(s.updateProfileInformation, s.profileRedirectToLogin)))
+	mux.Handle("POST /profile/settings/info", s.entrypoint(parseForm(s.profileAuthorization(s.updateProfileInformation, s.profileRedirectToLogin))))
 	mux.Handle("GET /profile/settings/password", s.entrypoint(s.profileAuthorization(s.getUpdatePasswordPage, s.profileRedirectToLogin)))
-	mux.Handle("POST /profile/settings/password", s.entrypoint(s.profileAuthorization(s.updateProfilePassword, s.profileRedirectToLogin)))
+	mux.Handle("POST /profile/settings/password", s.entrypoint(parseForm(s.profileAuthorization(s.updateProfilePassword, s.profileRedirectToLogin))))
 	mux.Handle("GET "+s.authPath, s.entrypoint(s.profileAuthorization(s.authorize, s.authorizeRedirectToLogin)))
-	mux.Handle("POST "+s.authPath, s.entrypoint(s.exchangeAuthorization(s.profileExchange)))
-	mux.Handle("POST "+s.authPath+"/accept", s.entrypoint(s.profileAuthorization(s.authorizeAccept, nil)))
-	mux.Handle("POST "+s.authPath+"/reject", s.entrypoint(s.profileAuthorization(s.authorizeReject, nil)))
-	mux.Handle("POST "+s.tokenPath, s.entrypoint(s.exchangeAuthorization(s.tokenExchange)))
+	mux.Handle("POST "+s.authPath, s.entrypoint(parseForm(s.exchangeAuthorization(s.profileExchange))))
+	mux.Handle("POST "+s.authPath+"/accept", s.entrypoint(parseForm(s.profileAuthorization(s.authorizeAccept, nil))))
+	mux.Handle("POST "+s.authPath+"/reject", s.entrypoint(parseForm(s.profileAuthorization(s.authorizeReject, nil))))
+	mux.Handle("POST "+s.tokenPath, s.entrypoint(parseForm(s.exchangeAuthorization(s.tokenExchange))))
 
 	s.httpServer.Handler = mux
 }

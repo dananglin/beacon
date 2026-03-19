@@ -131,16 +131,6 @@ func (s *Server) getSetupPage(writer http.ResponseWriter, _ *http.Request) {
 }
 
 func (s *Server) setupAccount(writer http.ResponseWriter, request *http.Request) {
-	if err := request.ParseForm(); err != nil {
-		sendClientError(
-			writer,
-			http.StatusBadRequest,
-			fmt.Errorf("error parsing the form: %w", err),
-		)
-
-		return
-	}
-
 	form := setupForm{
 		profileID:         request.PostFormValue("profileID"),
 		password:          request.PostFormValue("password"),

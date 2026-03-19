@@ -176,16 +176,6 @@ type clientRequestData struct {
 }
 
 func (s *Server) authorizeAccept(writer http.ResponseWriter, request *http.Request, profileID string) {
-	if err := request.ParseForm(); err != nil {
-		sendClientError(
-			writer,
-			http.StatusBadRequest,
-			fmt.Errorf("error parsing the form: %w", err),
-		)
-
-		return
-	}
-
 	encodedState := request.PostFormValue("state")
 
 	authReq, err := s.getClientAuthRequest(&encodedState, request.URL.Query())
@@ -253,16 +243,6 @@ func (s *Server) authorizeAccept(writer http.ResponseWriter, request *http.Reque
 }
 
 func (s *Server) authorizeReject(writer http.ResponseWriter, request *http.Request, _ string) {
-	if err := request.ParseForm(); err != nil {
-		sendClientError(
-			writer,
-			http.StatusBadRequest,
-			fmt.Errorf("error parsing the form: %w", err),
-		)
-
-		return
-	}
-
 	encodedState := request.PostFormValue("state")
 
 	authReq, err := s.getClientAuthRequest(&encodedState, request.URL.Query())
