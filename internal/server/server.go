@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 	"time"
 
@@ -254,4 +255,18 @@ func setupLogging(level string) {
 
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &opts))
 	slog.SetDefault(logger)
+}
+
+func logAccess(brw *responseWriter, requestID, clientAddr, userAgent, method, uri string) {
+	slog.LogAttrs(
+		context.Background(),
+		slog.LevelInfo,
+		http.StatusText(brw.statusCode)+": wrote "+strconv.Itoa(brw.wrote)+"B",
+		slog.String("request_id", requestID),
+		slog.String("client_addr", clientAddr),
+		slog.String("user_agent", userAgent),
+		slog.String("method", method),
+		slog.String("uri", uri),
+		slog.Int("status_code", brw.statusCode),
+	)
 }

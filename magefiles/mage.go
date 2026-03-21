@@ -136,7 +136,7 @@ func Build() error {
 	flags := ldflags()
 	build := sh.RunCmd("go", "build")
 	binary := filepath.Join("./__build", appName())
-	args := []string{"-ldflags=" + flags, "-o", binary}
+	args := []string{"-trimpath", "-ldflags=" + flags, "-o", binary}
 
 	if os.Getenv(envBuildRebuildAll) == "1" {
 		args = append(args, "-a")

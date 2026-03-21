@@ -22,9 +22,11 @@ import (
 
 // entrypoint is the middleware that acts as the entry point of all requests.
 // The entrypoint assigns each request with a unique ID for logging and
-// troubleshooting.
+// troubleshooting. A log record is created for each request.
 func (s *Server) entrypoint(next http.Handler) http.HandlerFunc {
 	return func(writer http.ResponseWriter, request *http.Request) {
+		brw := newResponseWriter(writer)
+
 		requestID := "UNKNOWN"
 		id := make([]byte, 16)
 
@@ -39,15 +41,24 @@ func (s *Server) entrypoint(next http.Handler) http.HandlerFunc {
 			requestID = hex.EncodeToString(id)
 		}
 
-		writer.Header().Set("X-Request-ID", requestID)
+		brw.Header().Set("X-Request-ID", requestID)
+
+		defer logAccess(
+			brw,
+			requestID,
+			request.RemoteAddr,
+			request.UserAgent(),
+			request.Method,
+			request.URL.EscapedPath(),
+		)
 
 		if !s.dbInitialized && (request.URL.EscapedPath() != "/setup") {
-			http.Redirect(writer, request, "/setup", http.StatusSeeOther)
+			http.Redirect(brw, request, "/setup", http.StatusSeeOther)
 
 			return
 		}
 
-		next.ServeHTTP(writer, request)
+		next.ServeHTTP(brw, request)
 	}
 }
 
