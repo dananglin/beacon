@@ -96,6 +96,8 @@ func NewServer(configPath string) (*Server, error) {
 		httpServer: &http.Server{
 			Addr:              fmt.Sprintf("%s:%d", cfg.BindAddress, cfg.Port),
 			ReadHeaderTimeout: 1 * time.Second,
+			ReadTimeout:       30 * time.Second,
+			WriteTimeout:      30 * time.Second,
 		},
 		boltdb:                  boltdb,
 		cache:                   cache.NewCache(1 * time.Minute),
