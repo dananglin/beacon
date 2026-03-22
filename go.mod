@@ -8,7 +8,7 @@ go 1.26.1
 
 require (
 	github.com/golang-jwt/jwt/v5 v5.3.1
-	github.com/magefile/mage v1.15.0
+	github.com/magefile/mage v1.16.0
 	go.etcd.io/bbolt v1.4.3
 	golang.org/x/crypto v0.48.0
 	willnorris.com/go/microformats v1.2.1-0.20260218044424-22f0c2eff25b
