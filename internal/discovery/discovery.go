@@ -9,8 +9,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 
 	"codeflow.dananglin.me.uk/apollo/beacon/internal/info"
@@ -75,6 +77,18 @@ func FetchClientMetadata(ctx context.Context, clientID, issuer string) (ClientID
 	}
 	defer response.Body.Close()
 
+	metadata := ClientIDMetadata{}
+	gotContentType := response.Header.Get("Content-Type")
+
+	logRequest(
+		"fetching client metadata",
+		response.Request.Method,
+		response.Request.URL.String(),
+		response.StatusCode,
+		gotContentType,
+		response.ContentLength,
+	)
+
 	if response.StatusCode != http.StatusOK {
 		if response.StatusCode >= http.StatusMultipleChoices && response.StatusCode < http.StatusBadRequest {
 			return ClientIDMetadata{}, AttemptedRedirectionError{
@@ -88,9 +102,6 @@ func FetchClientMetadata(ctx context.Context, clientID, issuer string) (ClientID
 			status: response.Status,
 		}
 	}
-
-	metadata := ClientIDMetadata{}
-	gotContentType := response.Header.Get("Content-Type")
 
 	switch strings.ToLower(gotContentType) {
 	case "application/json":
@@ -168,4 +179,31 @@ func GetMetadataFromHTML(reader io.Reader, clientID string, parsedClientID *url.
 	}
 
 	return metadata
+}
+
+func logRequest(
+	msg string,
+	method string,
+	url string,
+	statusCode int,
+	contentType string,
+	contentLength int64,
+) {
+	slog.LogAttrs(
+		context.Background(),
+		slog.LevelInfo,
+		msg,
+		slog.GroupAttrs(
+			"request",
+			slog.String("method", method),
+			slog.String("url", url),
+		),
+		slog.GroupAttrs(
+			"response",
+			slog.String("msg", strconv.Itoa(statusCode)+" "+http.StatusText(statusCode)),
+			slog.Int("status_code", statusCode),
+			slog.String("content_type", contentType),
+			slog.Int64("content_length", contentLength),
+		),
+	)
 }
