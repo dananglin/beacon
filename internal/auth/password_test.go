@@ -5,6 +5,7 @@
 package auth_test
 
 import (
+	"errors"
 	"testing"
 
 	"codeflow.dananglin.me.uk/apollo/beacon/internal/auth"
@@ -16,20 +17,46 @@ func TestHashPassword(t *testing.T) {
 
 	hashedPassword, err := auth.HashPassword(testPassword)
 	if err != nil {
-		t.Fatalf("Unable to hash the test password: %v", err)
+		t.Fatalf(
+			"FAILED test %s: Unable to hash the test password: %v",
+			t.Name(),
+			err,
+		)
 	} else {
 		t.Logf("Test password hashed successfully: got %s", hashedPassword)
 	}
 
-	if err := auth.CheckPasswordHash(hashedPassword, testPassword); err != nil {
-		t.Errorf("CheckPasswordHash failed on correct password, error received: %v", err)
+	err = auth.CheckPasswordHash(hashedPassword, testPassword)
+	if err != nil {
+		t.Errorf(
+			"FAILED test %s: CheckPasswordHash failed on correct password, error received: %v",
+			t.Name(),
+			err,
+		)
 	} else {
 		t.Log("CheckPasswordHash passed on correct password.")
 	}
 
-	if err := auth.CheckPasswordHash(hashedPassword, testIncorrectPassword); err == nil {
-		t.Error("CheckPasswordHash unexpectedly passed on incorrect password.")
+	err = auth.CheckPasswordHash(hashedPassword, testIncorrectPassword)
+	if err == nil {
+		t.Errorf(
+			"FAILED test %s: CheckPasswordHash unexpectedly passed on incorrect password.",
+			t.Name(),
+		)
 	} else {
-		t.Log("CheckPasswordHash expectedly failed on incorrect password.")
+		var wantErr auth.IncorrectPasswordError
+		if !errors.As(err, &wantErr) {
+			t.Errorf(
+				"FAILED test %s: Unexpected error received from CheckPasswordHash for the incorrect password.\nwant: %v\n got: %v",
+				t.Name(),
+				wantErr,
+				err,
+			)
+		} else {
+			t.Logf(
+				"Expected error received from CheckPasswordHash for the incorrect password.\ngot: %v",
+				err,
+			)
+		}
 	}
 }

@@ -21,6 +21,16 @@ func HashPassword(password string) (string, error) {
 	return string(hash), nil
 }
 
+type IncorrectPasswordError struct{}
+
+func (IncorrectPasswordError) Error() string {
+	return "incorrect password"
+}
+
 func CheckPasswordHash(hash, password string) error {
-	return bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
+	if err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password)); err != nil {
+		return IncorrectPasswordError{}
+	}
+
+	return nil
 }

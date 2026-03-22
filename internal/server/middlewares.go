@@ -324,6 +324,8 @@ func parseForm(next http.HandlerFunc) http.Handler {
 					http.StatusInternalServerError,
 					fmt.Errorf("error parsing the request form: %w", err),
 				)
+
+				return
 			}
 
 			next(writer, request)

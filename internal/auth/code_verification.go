@@ -20,7 +20,7 @@ func (e UnsupportedHashMethodError) Error() string {
 
 type UnverifiedAuthorizationCodeError struct{}
 
-func (e UnverifiedAuthorizationCodeError) Error() string {
+func (UnverifiedAuthorizationCodeError) Error() string {
 	return "the authorization code is unverified"
 }
 
