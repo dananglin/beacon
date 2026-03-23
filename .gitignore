@@ -8,5 +8,6 @@
 /.environment/*
 /internal/database/testdata/*
 !/internal/database/testdata/.gitkeep
-/beacon.db
+beacon
+*beacon.db
 /config.json

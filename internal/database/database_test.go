@@ -13,9 +13,10 @@ import (
 )
 
 func TestDatabase(t *testing.T) {
-	dbPath := filepath.Join("testdata", t.Name()+".golden")
+	testdataDir := "testdata"
+	dbPath := filepath.Join(testdataDir, t.Name()+".db")
 
-	t.Log("Opening the database.")
+	t.Logf("Creating the database at %s", dbPath)
 
 	boltdb, err := database.Open(dbPath)
 	if err != nil {
@@ -24,14 +25,14 @@ func TestDatabase(t *testing.T) {
 			t.Name(),
 			err,
 		)
-	} else {
-		t.Log("Successfully opened the database.")
 	}
+
+	t.Log("Successfully opened the database.")
 
 	// Close and delete the database at the end of the test.
 	defer func() {
 		_ = boltdb.Close()
-		_ = os.Remove(dbPath)
+		_ = os.RemoveAll(testdataDir)
 	}()
 
 	t.Run("Test Database Setup", testDatabaseSetup(boltdb))

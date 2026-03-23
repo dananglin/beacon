@@ -6,10 +6,10 @@ package database
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
 	"time"
 
+	"codeflow.dananglin.me.uk/apollo/beacon/internal/utilities"
 	bolt "go.etcd.io/bbolt"
 )
 
@@ -17,8 +17,33 @@ import (
 func Open(path string) (*bolt.DB, error) {
 	dir := filepath.Dir(path)
 
-	if err := os.MkdirAll(dir, 0o700); err != nil {
-		return nil, fmt.Errorf("unable to create directory %q: %w", dir, err)
+	dirExists, err := utilities.FileExists(dir)
+	if err != nil {
+		return nil, fmt.Errorf("error checking if the database's directory exists: %w", err)
+	}
+
+	if dirExists {
+		err = utilities.CheckDirPerm(dir)
+		if err != nil {
+			return nil, fmt.Errorf("error checking the directory permission of %s: %w", dir, err)
+		}
+	} else {
+		err := utilities.MakeDir(dir)
+		if err != nil {
+			return nil, fmt.Errorf("error creating %s: %w", dir, err)
+		}
+	}
+
+	fileExists, err := utilities.FileExists(path)
+	if err != nil {
+		return nil, fmt.Errorf("error checking if the database file exists: %w", err)
+	}
+
+	if fileExists {
+		err = utilities.CheckFilePerm(path)
+		if err != nil {
+			return nil, fmt.Errorf("error checking the file permission of %s: %w", path, err)
+		}
 	}
 
 	opts := bolt.Options{

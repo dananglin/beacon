@@ -12,13 +12,17 @@ import (
 func TestServer(t *testing.T) {
 	t.Parallel()
 
-	testServer, err := NewServer("testdata/Config.json.golden")
+	testdataDir := "testdata/data"
+
+	testServer, err := NewServer("testdata/config.json")
 	if err != nil {
 		t.Fatalf("FAILED test %s: Unable to create the test server: %v", t.Name(), err)
 	}
 
 	defer func() {
-		os.Remove("testdata/Database.db.golden")
+		if err := os.RemoveAll(testdataDir); err != nil {
+			t.Logf("WARNING: Error removing %s: %v", testdataDir, err)
+		}
 	}()
 
 	t.Run("Test Server Metadata", testGetMetadata(testServer))
