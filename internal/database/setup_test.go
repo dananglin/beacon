@@ -6,7 +6,6 @@ package database_test
 
 import (
 	"testing"
-	"time"
 
 	"codeflow.dananglin.me.uk/apollo/beacon/internal/auth"
 	"codeflow.dananglin.me.uk/apollo/beacon/internal/database"
@@ -21,9 +20,9 @@ func testDatabaseSetup(boltdb *bolt.DB) func(t *testing.T) {
 		initialised, err := database.Initialized(boltdb)
 		if err != nil {
 			t.Fatalf(
-				"FAILED test %s: Received an error after checking whether or not the database is initialized.\ngot: %q",
+				"FAILED test %s: Received an error after checking whether or not the database is initialized.\ngot: %v",
 				t.Name(),
-				err.Error(),
+				err,
 			)
 		}
 
@@ -41,27 +40,23 @@ func testDatabaseSetup(boltdb *bolt.DB) func(t *testing.T) {
 		profileID, err := utilities.ValidateAndCanonicalizeURL("https://pippins.example.me", false)
 		if err != nil {
 			t.Fatalf(
-				"FAILED test %s: Received an error validating the profile URL.\ngot %q",
+				"FAILED test %s: Received an error validating the profile URL.\ngot %v",
 				t.Name(),
-				err.Error(),
+				err,
 			)
 		}
 
 		hashPassword, err := auth.HashPassword("fGEo1iGSsfqY")
 		if err != nil {
 			t.Fatalf(
-				"FAILED test %s: Received an error after attempting to hash the password.\ngot: %q",
+				"FAILED test %s: Received an error after attempting to hash the password.\ngot: %v",
 				t.Name(),
-				err.Error(),
+				err,
 			)
 		}
 
-		timestamp := time.Now()
-
 		profile := database.Profile{
 			HashedPassword: hashPassword,
-			CreatedAt:      timestamp,
-			UpdatedAt:      timestamp,
 			Information: database.ProfileInformation{
 				Name:     "Pip Hubert",
 				URL:      "https://pippins.example.me/about/me",
@@ -71,9 +66,9 @@ func testDatabaseSetup(boltdb *bolt.DB) func(t *testing.T) {
 
 		if err := database.Setup(boltdb, profileID, profile); err != nil {
 			t.Fatalf(
-				"FAILED test %s: Received an error after setting up the database.\ngot: %q",
+				"FAILED test %s: Received an error after setting up the database.\ngot: %v",
 				t.Name(),
-				err.Error(),
+				err,
 			)
 		} else {
 			t.Log("Database was set up successfully.")
@@ -97,6 +92,36 @@ func testDatabaseSetup(boltdb *bolt.DB) func(t *testing.T) {
 			)
 		} else {
 			t.Logf("The database appears to be initialized as expected.")
+		}
+
+		gotProfile, err := database.GetProfile(boltdb, profileID)
+		if err != nil {
+			t.Fatalf(
+				"FAILED test %s: Received an error after getting the profile from the database:\ngot: %v",
+				t.Name(),
+				err,
+			)
+		}
+
+		if gotProfile.HashedPassword != hashPassword {
+			t.Errorf(
+				"FAILED test %s: Unexpected hashed password received from the profile in the database:\nwant: %s\n got: %s",
+				t.Name(),
+				hashPassword,
+				gotProfile.HashedPassword,
+			)
+		} else {
+			t.Logf(
+				"Expected hashed password received from the profile in the database:\ngot: %s",
+				gotProfile.HashedPassword,
+			)
+		}
+
+		if gotProfile.CreatedAt.IsZero() {
+			t.Errorf(
+				"FAILED test %s: The profile's 'CreatedAt' field is set to its zero value",
+				t.Name(),
+			)
 		}
 	}
 }

@@ -62,31 +62,6 @@ func Open(path string) (*bolt.DB, error) {
 	return boltdb, nil
 }
 
-// Setup sets up the database by creating the 'profiles' bucket and
-// writing the first profile to that bucket.
-func Setup(boltdb *bolt.DB, profileID string, profile Profile) error {
-	if err := boltdb.Update(func(tx *bolt.Tx) error {
-		bucket := getBucketName()
-		if _, err := tx.CreateBucket(bucket); err != nil {
-			return fmt.Errorf(
-				"unable to create the bucket %q: %w",
-				profilesBucketName,
-				err,
-			)
-		}
-
-		return nil
-	}); err != nil {
-		return fmt.Errorf("error creating the BoltDB bucket: %w", err)
-	}
-
-	if err := saveProfile(boltdb, profileID, profile); err != nil {
-		return fmt.Errorf("error saving the profile: %w", err)
-	}
-
-	return nil
-}
-
 // Initialized checks to see if the database is initialized or not.
 // The database is initialized if the 'profiles' bucket exists and that
 // there is at least one profile stored in the bucket.
