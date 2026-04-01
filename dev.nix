@@ -5,8 +5,8 @@
 # Creates a Nix development environment for the Beacon project.
 let
   # Branch: nixos-unstable
-  # Date of commit: 2026-03-16
-  commit_ref = "5b2c2d84341b2afb5647081c1386a80d7a8d8605";
+  # Date of commit: 2026-03-28
+  commit_ref = "8110df5ad7abf5d4c0f6fb0f8f978390e77f9685";
   nixpkgs = fetchTarball "https://github.com/NixOS/nixpkgs/tarball/${commit_ref}";
   pkgs = import nixpkgs {
     config = { };
