@@ -52,11 +52,20 @@ const (
 	pathAuthAccept string = pathAuth + "/accept"
 	pathAuthReject string = pathAuth + "/reject"
 	pathToken      string = "/indieauth/token" // #nosec G101 -- This is not hardcoded credentials.
+
+	responseFailureFmt    string = `<div id="status" class="failure">%s</div>`
+	responseSuccessFmt    string = `<div id="status" class="success">%s</div>`
+	responselabelErrorFmt string = `<label class="error" id=%q>%s</label>`
 )
 
 type (
 	profileHandlerFunc  func(writer http.ResponseWriter, request *http.Request, profileID string)
 	exchangeHandlerFunc func(writer http.ResponseWriter, data clientRequestData)
+
+	fieldErrorLabel struct {
+		labelID string
+		message string
+	}
 
 	Server struct {
 		httpServer              *http.Server

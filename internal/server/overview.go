@@ -43,7 +43,7 @@ func (s *Server) getOverviewPage(writer http.ResponseWriter, _ *http.Request, pr
 		Title:       "Your profile - " + info.ApplicationTitledName,
 	}
 
-	s.sendHTMLResponse(
+	s.sendHTMLResponseWithTemplate(
 		writer,
 		"overview",
 		http.StatusOK,

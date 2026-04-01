@@ -12,7 +12,7 @@ import (
 	"net/http"
 )
 
-func (s *Server) sendHTMLResponse(
+func (s *Server) sendHTMLResponseWithTemplate(
 	writer http.ResponseWriter,
 	templateName string,
 	statusCode int,
@@ -51,6 +51,38 @@ func (s *Server) sendHTMLResponse(
 
 		return
 	}
+}
+
+func (s *Server) sendHTMLResponse(
+	writer http.ResponseWriter,
+	payload []byte,
+	statusCode int,
+	clientErr error,
+	serverErr error,
+) {
+	if clientErr != nil {
+		slog.LogAttrs(
+			context.Background(),
+			slog.LevelError,
+			"Client error",
+			slog.Any("error", clientErr),
+			slog.String("request_id", writer.Header().Get("X-Request-ID")),
+		)
+	}
+
+	if serverErr != nil {
+		slog.LogAttrs(
+			context.Background(),
+			slog.LevelError,
+			"Server error",
+			slog.Any("error", serverErr),
+			slog.String("request_id", writer.Header().Get("X-Request-ID")),
+		)
+	}
+
+	writer.Header().Set("Content-Type", "text/html; charset=UTF-8")
+	writer.WriteHeader(statusCode)
+	_, _ = writer.Write(payload)
 }
 
 func sendJSONResponse(writer http.ResponseWriter, statusCode int, payload any) {

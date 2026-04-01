@@ -15,54 +15,60 @@
     <body>
         <h1 class="title">Set up your profile</h1>
 
-        <div class="main setup">
-            {{ if gt (len .FailureMessage) 0 }}
-            <div class="failure">{{ .FailureMessage }}</div>
-            {{ end }}
+        <div class="main" id="setup">
+            <div id="status"></div>
 
-            <form action="/setup" method="POST" novalidate>
+            <form novalidate>
                 <div>
-                    <label class="field">Profile ID (required)</label><br />
-                    {{ with .FieldErrors.ProfileID }}
-                    <label class="error">{{ . }}</label><br />
-                    {{ end }}
+                    <label class="field" id="profile_id">Profile ID (required)</label><br />
+                    <label class="error" id="profile_id_error"></label><br />
                     <input type="text" name="profileID" value="{{ .ProfileID }}"><br />
                 </div>
+
                 <div>
-                    <label class="field">Password (required)</label><br />
-                    {{ with .FieldErrors.Password }}
-                    <label class="error">{{ . }}</label><br />
-                    {{ end }}
+                    <label class="field" id="password">Password (required)</label><br />
+                    <label class="error" id="password_error"></label><br />
                     <input type="password" name="password"><br />
                 </div>
+
                 <div>
-                    <label class="field">Confirm password (required)</label><br />
-                    {{ with .FieldErrors.ConfirmedPassword }}
-                    <label class="error">{{ . }}</label><br />
-                    {{ end }}
+                    <label class="field" id="confirmed_password">Confirm password (required)</label><br />
+                    <label class="error" id="confirmed_password_error"></label><br />
                     <input type="password" name="confirmedPassword">
                 </div>
+
                 <div>
-                    <label class="field">Profile display name</label><br />
+                    <label class="field" id="display_name">Profile display name</label><br />
                     <input type="text" name="profileDisplayName" value="{{ .DisplayName }}"><br />
                 </div>
+
                 <div>
-                    <label class="field">Profile email</label><br />
+                    <label class="field" id="email">Profile email</label><br />
                     <input type="email" name="profileEmail" value="{{ .Email }}"><br />
                 </div>
+
                 <div>
-                    <label class="field">Profile URL</label><br />
+                    <label class="field" id="profile_url">Profile URL</label><br />
                     <input type="text" name="profileURL" value="{{ .URL }}"><br />
                 </div>
+
                 <div>
-                    <label class="field">Profile photo URL</label><br />
+                    <label class="field" id="profile_photo_url">Profile photo URL</label><br />
                     <input type="text" name="profilePhotoURL" value="{{ .PhotoURL }}"><br />
                 </div>
+
                 <div>
-                    <button class="button_left button_form" type="submit">Create profile</button>
+                    <button class="button_left button_form" type="submit"
+                            hx-post="/setup"
+                            hx-trigger="click"
+                            hx-swap="outerHTML"
+                            hx-target="#status">
+                        Create profile
+                    </button>
                 </div>
             </form>
         </div>
+        <script src="/static/scripts/setup.js"></script>
     </body>
 </html>
 {{ end }}

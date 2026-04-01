@@ -126,7 +126,7 @@ func (s *Server) authorize(writer http.ResponseWriter, request *http.Request, pr
 		Scopes:            authReq.Scope,
 	}
 
-	s.sendHTMLResponse(
+	s.sendHTMLResponseWithTemplate(
 		writer,
 		"consent",
 		http.StatusOK,

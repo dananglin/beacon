@@ -86,3 +86,11 @@ type StateKeyNotFoundInCacheError struct {
 func (e StateKeyNotFoundInCacheError) Error() string {
 	return "the encoded state key '" + e.encodedState + "' is not present in the cache"
 }
+
+type formValidationError struct {
+	reason string
+}
+
+func (e formValidationError) Error() string {
+	return "form validation failed: " + e.reason
+}

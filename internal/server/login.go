@@ -5,7 +5,6 @@
 package server
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -19,12 +18,10 @@ import (
 )
 
 type loginPage struct {
-	ProfileID      string
-	LoginType      string
-	State          string
-	Title          string
-	FailureMessage string
-	FieldErrors    map[string]string
+	ProfileID string
+	LoginType string
+	State     string
+	Title     string
 }
 
 type loginForm struct {
@@ -34,18 +31,16 @@ type loginForm struct {
 	state     string
 }
 
-func (f *loginForm) valid() (map[string]string, bool) {
-	fieldErrors := make(map[string]string)
-
+func (f *loginForm) validate() error {
 	if strings.TrimSpace(f.profileID) == "" {
-		fieldErrors["ProfileID"] = "This field cannot be blank"
+		return formValidationError{reason: "the profile ID is not set"}
 	}
 
 	if strings.TrimSpace(f.password) == "" {
-		fieldErrors["Password"] = "This field cannot be blank"
+		return formValidationError{reason: "the password is not set"}
 	}
 
-	return fieldErrors, len(fieldErrors) == 0
+	return nil
 }
 
 func (s *Server) getLoginPage(writer http.ResponseWriter, request *http.Request) {
@@ -56,21 +51,21 @@ func (s *Server) getLoginPage(writer http.ResponseWriter, request *http.Request)
 			http.StatusBadRequest,
 			fmt.Errorf("error parsing the query string: %w", err),
 		)
+
+		return
 	}
 
 	loginType := query.Get(qKeyLoginType)
 	if loginType != loginTypeIndieauth {
-		s.sendHTMLResponse(
+		s.sendHTMLResponseWithTemplate(
 			writer,
 			"login",
 			http.StatusOK,
 			loginPage{
-				ProfileID:      "",
-				LoginType:      loginTypeProfile,
-				State:          "",
-				Title:          loginPageTitle(),
-				FailureMessage: "",
-				FieldErrors:    map[string]string{},
+				ProfileID: "",
+				LoginType: loginTypeProfile,
+				State:     "",
+				Title:     loginPageTitle(),
 			},
 			nil,
 			nil,
@@ -82,17 +77,15 @@ func (s *Server) getLoginPage(writer http.ResponseWriter, request *http.Request)
 	profileID := query.Get(qKeyProfileID)
 	state := query.Get(qKeyState)
 
-	s.sendHTMLResponse(
+	s.sendHTMLResponseWithTemplate(
 		writer,
 		"login",
 		http.StatusOK,
 		loginPage{
-			ProfileID:      profileID,
-			LoginType:      loginType,
-			State:          state,
-			Title:          loginPageTitle(),
-			FailureMessage: "",
-			FieldErrors:    map[string]string{},
+			ProfileID: profileID,
+			LoginType: loginType,
+			State:     state,
+			Title:     loginPageTitle(),
 		},
 		nil,
 		nil,
@@ -107,23 +100,13 @@ func (s *Server) authenticate(writer http.ResponseWriter, request *http.Request)
 		state:     request.PostFormValue("state"),
 	}
 
-	fieldErrors, valid := form.valid()
-	if !valid {
-		page := loginPage{
-			ProfileID:      form.profileID,
-			LoginType:      form.loginType,
-			State:          form.state,
-			Title:          loginPageTitle(),
-			FailureMessage: "Invalid form",
-			FieldErrors:    fieldErrors,
-		}
-
+	err := form.validate()
+	if err != nil {
 		s.sendHTMLResponse(
 			writer,
-			"login",
-			http.StatusUnprocessableEntity,
-			page,
-			errors.New("invalid form"),
+			fmt.Appendf([]byte{}, responseFailureFmt, "The Profile ID or password is incorrect"),
+			http.StatusUnauthorized,
+			err,
 			nil,
 		)
 
@@ -134,16 +117,8 @@ func (s *Server) authenticate(writer http.ResponseWriter, request *http.Request)
 	if err != nil {
 		s.sendHTMLResponse(
 			writer,
-			"login",
+			fmt.Appendf([]byte{}, responseFailureFmt, "The Profile ID or password is incorrect"),
 			http.StatusUnauthorized,
-			loginPage{
-				ProfileID:      form.profileID,
-				LoginType:      form.loginType,
-				State:          form.state,
-				Title:          loginPageTitle(),
-				FailureMessage: "The Profile ID or password is incorrect",
-				FieldErrors:    fieldErrors,
-			},
 			fmt.Errorf("error validating and canonicalizing the profile ID: %w", err),
 			nil,
 		)
@@ -155,16 +130,8 @@ func (s *Server) authenticate(writer http.ResponseWriter, request *http.Request)
 	if err != nil {
 		s.sendHTMLResponse(
 			writer,
-			"login",
+			fmt.Appendf([]byte{}, responseFailureFmt, "Unable to login"),
 			http.StatusInternalServerError,
-			loginPage{
-				ProfileID:      form.profileID,
-				LoginType:      form.loginType,
-				State:          form.state,
-				Title:          loginPageTitle(),
-				FailureMessage: "Unable to login",
-				FieldErrors:    make(map[string]string),
-			},
 			nil,
 			fmt.Errorf("error looking up the profile in the database: %w", err),
 		)
@@ -175,16 +142,8 @@ func (s *Server) authenticate(writer http.ResponseWriter, request *http.Request)
 	if !exists {
 		s.sendHTMLResponse(
 			writer,
-			"login",
+			fmt.Appendf([]byte{}, responseFailureFmt, "The Profile ID or password is incorrect"),
 			http.StatusUnauthorized,
-			loginPage{
-				ProfileID:      form.profileID,
-				LoginType:      form.loginType,
-				State:          form.state,
-				Title:          loginPageTitle(),
-				FailureMessage: "The Profile ID or password is incorrect",
-				FieldErrors:    make(map[string]string),
-			},
 			fmt.Errorf("unknown profile ID: %s", form.profileID),
 			nil,
 		)
@@ -196,16 +155,8 @@ func (s *Server) authenticate(writer http.ResponseWriter, request *http.Request)
 	if err != nil {
 		s.sendHTMLResponse(
 			writer,
-			"login",
+			fmt.Appendf([]byte{}, responseFailureFmt, "Unable to login"),
 			http.StatusInternalServerError,
-			loginPage{
-				ProfileID:      form.profileID,
-				LoginType:      form.loginType,
-				State:          form.state,
-				Title:          loginPageTitle(),
-				FailureMessage: "Unable to login",
-				FieldErrors:    make(map[string]string),
-			},
 			nil,
 			fmt.Errorf("error retrieving the profile from the database: %w", err),
 		)
@@ -217,16 +168,8 @@ func (s *Server) authenticate(writer http.ResponseWriter, request *http.Request)
 	if err != nil {
 		s.sendHTMLResponse(
 			writer,
-			"login",
+			fmt.Appendf([]byte{}, responseFailureFmt, "The Profile ID or password is incorrect"),
 			http.StatusUnauthorized,
-			loginPage{
-				ProfileID:      form.profileID,
-				LoginType:      form.loginType,
-				State:          form.state,
-				Title:          loginPageTitle(),
-				FailureMessage: "The Profile ID or password is incorrect",
-				FieldErrors:    make(map[string]string),
-			},
 			fmt.Errorf("error validating the password: %w", err),
 			nil,
 		)
@@ -240,16 +183,8 @@ func (s *Server) authenticate(writer http.ResponseWriter, request *http.Request)
 	if err != nil {
 		s.sendHTMLResponse(
 			writer,
-			"login",
+			fmt.Appendf([]byte{}, responseFailureFmt, "Unable to login"),
 			http.StatusInternalServerError,
-			loginPage{
-				ProfileID:      form.profileID,
-				LoginType:      form.loginType,
-				State:          form.state,
-				Title:          loginPageTitle(),
-				FailureMessage: "Unable to login",
-				FieldErrors:    make(map[string]string),
-			},
 			nil,
 			fmt.Errorf("error creating the JWT: %w", err),
 		)
@@ -280,16 +215,8 @@ func (s *Server) authenticate(writer http.ResponseWriter, request *http.Request)
 	if !ok {
 		s.sendHTMLResponse(
 			writer,
-			"login",
+			fmt.Appendf([]byte{}, responseFailureFmt, "Unable to login"),
 			http.StatusBadRequest,
-			loginPage{
-				ProfileID:      form.profileID,
-				LoginType:      form.loginType,
-				State:          form.state,
-				Title:          loginPageTitle(),
-				FailureMessage: "Unable to login",
-				FieldErrors:    make(map[string]string),
-			},
 			fmt.Errorf("unrecognised login type: %s", form.loginType),
 			nil,
 		)
@@ -297,7 +224,7 @@ func (s *Server) authenticate(writer http.ResponseWriter, request *http.Request)
 		return
 	}
 
-	http.Redirect(writer, request, redirectURL, http.StatusSeeOther)
+	writer.Header().Set("Hx-Redirect", redirectURL)
 }
 
 func (s *Server) logout(writer http.ResponseWriter, _ *http.Request, profileID string) {

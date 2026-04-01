@@ -15,34 +15,34 @@
     <body>
         <h1 class="title">Sign into your account</h1>
 
+        <div class="main" id="login">
+            <div id="status"></div>
 
-        <div class="main login">
-            {{ if gt (len .FailureMessage) 0 }}
-            <div class="failure">{{ .FailureMessage }}</div>
-            {{ end }}
-
-            <form action="/profile/login" method="POST" novalidate>
+            <form novalidate>
                 <div>
                     <label class="field">Profile ID</label><br />
-                    {{ with .FieldErrors.ProfileID }}
-                    <label class="error">{{ . }}</label><br />
-                    {{ end }}
                     <input type="text" name="profileID" value="{{ .ProfileID }}"><br />
                 </div>
                 <div>
                     <label class="field">Password</label><br />
-                    {{ with .FieldErrors.Password }}
-                    <label class="error">{{ . }}</label><br />
-                    {{ end }}
                     <input type="password" name="password"><br />
                 </div>
                 <div>
                     <input type="hidden", name="loginType", value="{{ .LoginType }}">
+
                     <input type="hidden", name="state", value="{{ .State }}">
-                    <button class="button_left button_form" type="submit">Sign in</button>
+
+                    <button class="button_left button_form" type=submit
+                            hx-post="/profile/login"
+                            hx-trigger="click"
+                            hx-swap="outerHTML"
+                            hx-target="#status">
+                        Sign in
+                    </button>
                 </div>
             </form>
         </div>
+        <script src="/static/scripts/login.js"></script>
     </body>
 </html>
 {{ end }}

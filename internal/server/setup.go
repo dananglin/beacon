@@ -5,7 +5,6 @@
 package server
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -18,14 +17,12 @@ import (
 )
 
 type setupPage struct {
-	Title          string
-	FailureMessage string
-	ProfileID      string
-	DisplayName    string
-	Email          string
-	URL            string
-	PhotoURL       string
-	FieldErrors    map[string]string
+	Title       string
+	ProfileID   string
+	DisplayName string
+	Email       string
+	URL         string
+	PhotoURL    string
 }
 
 type setupForm struct {
@@ -40,29 +37,29 @@ type setupForm struct {
 	}
 }
 
-func (f *setupForm) valid() (map[string]string, bool) {
-	fieldErrors := make(map[string]string)
-
+func (f *setupForm) validate() (fieldErrorLabel, error) {
 	if strings.TrimSpace(f.profileID) == "" {
-		fieldErrors["ProfileID"] = "This field must not be empty"
-
-		return fieldErrors, false
+		return fieldErrorLabel{
+			labelID: "profile_id_error",
+			message: "This field must not be empty",
+		}, formValidationError{reason: "the profile ID field is empty"}
 	}
 
 	if utf8.RuneCountInString(f.password) < 8 {
-		fieldErrors["Password"] = "The password must be at least 8 characters long"
-
-		return fieldErrors, false
+		return fieldErrorLabel{
+			labelID: "password_error",
+			message: "The password must be at least 8 characters long",
+		}, formValidationError{reason: "the password field is less than 8 characters"}
 	}
 
 	if f.password != f.confirmedPassword {
-		fieldErrors["Password"] = "Your passwords do not match"
-		fieldErrors["ConfirmedPassword"] = "Your passwords do not match"
-
-		return fieldErrors, false
+		return fieldErrorLabel{
+			labelID: "confirmed_password_error",
+			message: "Your passwords do not match",
+		}, formValidationError{reason: "the passwords do not match"}
 	}
 
-	return nil, true
+	return fieldErrorLabel{}, nil
 }
 
 func (s *Server) setup(writer http.ResponseWriter, request *http.Request) {
@@ -104,17 +101,15 @@ func (s *Server) setup(writer http.ResponseWriter, request *http.Request) {
 
 func (s *Server) getSetupPage(writer http.ResponseWriter, _ *http.Request) {
 	page := setupPage{
-		Title:          setupPageTitle(),
-		FailureMessage: "",
-		ProfileID:      "",
-		DisplayName:    "",
-		Email:          "",
-		URL:            "",
-		PhotoURL:       "",
-		FieldErrors:    make(map[string]string),
+		Title:       setupPageTitle(),
+		ProfileID:   "",
+		DisplayName: "",
+		Email:       "",
+		URL:         "",
+		PhotoURL:    "",
 	}
 
-	s.sendHTMLResponse(
+	s.sendHTMLResponseWithTemplate(
 		writer,
 		"setup",
 		http.StatusOK,
@@ -142,25 +137,21 @@ func (s *Server) setupAccount(writer http.ResponseWriter, request *http.Request)
 		},
 	}
 
-	fieldErrs, valid := form.valid()
-	if !valid {
-		page := setupPage{
-			Title:          setupPageTitle(),
-			FailureMessage: "Invalid form",
-			ProfileID:      form.profileID,
-			DisplayName:    form.profile.displayName,
-			Email:          form.profile.email,
-			URL:            form.profile.url,
-			PhotoURL:       form.profile.photoURL,
-			FieldErrors:    fieldErrs,
-		}
+	fieldErrorLabel, err := form.validate()
+	if err != nil {
+		writer.Header().Set("HX-Retarget", "#"+fieldErrorLabel.labelID)
+		writer.Header().Set("HX-Reswap", "outerHTML")
 
 		s.sendHTMLResponse(
 			writer,
-			"setup",
+			fmt.Appendf(
+				[]byte{},
+				responselabelErrorFmt,
+				fieldErrorLabel.labelID,
+				fieldErrorLabel.message,
+			),
 			http.StatusUnprocessableEntity,
-			page,
-			errors.New("invalid form"),
+			fmt.Errorf("error validating the form: %w", err),
 			nil,
 		)
 
@@ -172,24 +163,18 @@ func (s *Server) setupAccount(writer http.ResponseWriter, request *http.Request)
 		false,
 	)
 	if err != nil {
-		page := setupPage{
-			Title:          setupPageTitle(),
-			FailureMessage: "Invalid profile ID",
-			ProfileID:      form.profileID,
-			DisplayName:    form.profile.displayName,
-			Email:          form.profile.email,
-			URL:            form.profile.url,
-			PhotoURL:       form.profile.photoURL,
-			FieldErrors: map[string]string{
-				"ProfileID": "Please enter a valid domain or website",
-			},
-		}
+		writer.Header().Set("HX-Retarget", "#profile_id_error")
+		writer.Header().Set("HX-Reswap", "outerHTML")
 
 		s.sendHTMLResponse(
 			writer,
-			"setup",
+			fmt.Appendf(
+				[]byte{},
+				responselabelErrorFmt,
+				"profile_id_error",
+				"Please enter a valid domain or website",
+			),
 			http.StatusUnprocessableEntity,
-			page,
 			fmt.Errorf("error validating the profile ID: %w", err),
 			nil,
 		)
@@ -197,24 +182,13 @@ func (s *Server) setupAccount(writer http.ResponseWriter, request *http.Request)
 		return
 	}
 
+	// Hash the password
 	hashedPassword, err := auth.HashPassword(form.password)
 	if err != nil {
-		page := setupPage{
-			Title:          setupPageTitle(),
-			FailureMessage: "Invalid form",
-			ProfileID:      form.profileID,
-			DisplayName:    form.profile.displayName,
-			Email:          form.profile.email,
-			URL:            form.profile.url,
-			PhotoURL:       form.profile.photoURL,
-			FieldErrors:    make(map[string]string),
-		}
-
 		s.sendHTMLResponse(
 			writer,
-			"setup",
+			fmt.Appendf([]byte{}, responseFailureFmt, "Unable to set up your profile"),
 			http.StatusInternalServerError,
-			page,
 			nil,
 			fmt.Errorf("error hashing the password: %w", err),
 		)
@@ -222,6 +196,7 @@ func (s *Server) setupAccount(writer http.ResponseWriter, request *http.Request)
 		return
 	}
 
+	// Create and store the new profile
 	profile := database.Profile{
 		HashedPassword: hashedPassword,
 		Information: database.ProfileInformation{
@@ -233,22 +208,10 @@ func (s *Server) setupAccount(writer http.ResponseWriter, request *http.Request)
 	}
 
 	if err := database.Setup(s.boltdb, canonicalisedProfielID, profile); err != nil {
-		page := setupPage{
-			Title:          setupPageTitle(),
-			FailureMessage: "Unable to create your profile",
-			ProfileID:      form.profileID,
-			DisplayName:    form.profile.displayName,
-			Email:          form.profile.email,
-			URL:            form.profile.url,
-			PhotoURL:       form.profile.photoURL,
-			FieldErrors:    make(map[string]string),
-		}
-
 		s.sendHTMLResponse(
 			writer,
-			"setup",
+			fmt.Appendf([]byte{}, responseFailureFmt, "Unable to set up your profile"),
 			http.StatusInternalServerError,
-			page,
 			nil,
 			fmt.Errorf("error setting up the database: %w", err),
 		)
@@ -259,22 +222,10 @@ func (s *Server) setupAccount(writer http.ResponseWriter, request *http.Request)
 	// Ensure that the database has been initialized successfully.
 	dbInitialized, err := database.Initialized(s.boltdb)
 	if err != nil {
-		page := setupPage{
-			Title:          setupPageTitle(),
-			FailureMessage: "Unable to create your profile",
-			ProfileID:      form.profileID,
-			DisplayName:    form.profile.displayName,
-			Email:          form.profile.email,
-			URL:            form.profile.url,
-			PhotoURL:       form.profile.photoURL,
-			FieldErrors:    make(map[string]string),
-		}
-
 		s.sendHTMLResponse(
 			writer,
-			"setup",
+			fmt.Appendf([]byte{}, responseFailureFmt, "Unable to set up your profile"),
 			http.StatusInternalServerError,
-			page,
 			nil,
 			fmt.Errorf("error checking if the database has been initialized or not: %w", err),
 		)
@@ -283,22 +234,10 @@ func (s *Server) setupAccount(writer http.ResponseWriter, request *http.Request)
 	}
 
 	if !dbInitialized {
-		page := setupPage{
-			Title:          setupPageTitle(),
-			FailureMessage: "Unable to create your profile",
-			ProfileID:      form.profileID,
-			DisplayName:    form.profile.displayName,
-			Email:          form.profile.email,
-			URL:            form.profile.url,
-			PhotoURL:       form.profile.photoURL,
-			FieldErrors:    make(map[string]string),
-		}
-
 		s.sendHTMLResponse(
 			writer,
-			"setup",
+			fmt.Appendf([]byte{}, responseFailureFmt, "Unable to set up your profile"),
 			http.StatusInternalServerError,
-			page,
 			nil,
 			ErrDatabaseNotInitialized,
 		)
@@ -308,7 +247,7 @@ func (s *Server) setupAccount(writer http.ResponseWriter, request *http.Request)
 
 	s.dbInitialized = dbInitialized
 
-	http.Redirect(writer, request, "/profile/login", http.StatusSeeOther)
+	writer.Header().Set("Hx-Redirect", "/profile/login")
 }
 
 func setupPageTitle() string {

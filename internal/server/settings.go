@@ -5,7 +5,6 @@
 package server
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
 	"unicode/utf8"
@@ -29,15 +28,10 @@ type settingsUpdateProfileInfoPage struct {
 	PhotoURL         string
 	Title            string
 	SettingsCategory string
-	FailureMessage   string
-	SuccessMessage   string
 }
 
 func (s *Server) getUpdateProfileInfoPage(writer http.ResponseWriter, _ *http.Request, profileID string) {
-	profileInfo, err := database.GetProfileInformation(
-		s.boltdb,
-		profileID,
-	)
+	profileInfo, err := database.GetProfileInformation(s.boltdb, profileID)
 	if err != nil {
 		sendServerError(
 			writer,
@@ -56,11 +50,9 @@ func (s *Server) getUpdateProfileInfoPage(writer http.ResponseWriter, _ *http.Re
 		PhotoURL:         profileInfo.PhotoURL,
 		Title:            updateProfileInfoPageTitle(),
 		SettingsCategory: settingsProfileInfo,
-		FailureMessage:   "",
-		SuccessMessage:   "",
 	}
 
-	s.sendHTMLResponse(
+	s.sendHTMLResponseWithTemplate(
 		writer,
 		"settings",
 		http.StatusOK,
@@ -79,24 +71,10 @@ func (s *Server) updateProfileInformation(writer http.ResponseWriter, request *h
 	}
 
 	if err := database.UpdateProfileInformation(s.boltdb, profileID, newProfileInfo); err != nil {
-		page := settingsUpdateProfileInfoPage{
-			ActiveTab:        activeTabSettings,
-			ProfileID:        profileID,
-			DisplayName:      newProfileInfo.Name,
-			URL:              newProfileInfo.URL,
-			Email:            newProfileInfo.Email,
-			PhotoURL:         newProfileInfo.PhotoURL,
-			Title:            updateProfileInfoPageTitle(),
-			SettingsCategory: settingsProfileInfo,
-			FailureMessage:   "Unable to update your profile",
-			SuccessMessage:   "",
-		}
-
 		s.sendHTMLResponse(
 			writer,
-			"settings",
+			fmt.Appendf([]byte{}, responseFailureFmt, "Unable to update your profile"),
 			http.StatusInternalServerError,
-			page,
 			nil,
 			fmt.Errorf("error updating the profile: %w", err),
 		)
@@ -104,24 +82,10 @@ func (s *Server) updateProfileInformation(writer http.ResponseWriter, request *h
 		return
 	}
 
-	page := settingsUpdateProfileInfoPage{
-		ActiveTab:        activeTabSettings,
-		ProfileID:        profileID,
-		DisplayName:      newProfileInfo.Name,
-		URL:              newProfileInfo.URL,
-		Email:            newProfileInfo.Email,
-		PhotoURL:         newProfileInfo.PhotoURL,
-		Title:            updateProfileInfoPageTitle(),
-		SettingsCategory: settingsProfileInfo,
-		FailureMessage:   "",
-		SuccessMessage:   "Successfully updated your profile information",
-	}
-
 	s.sendHTMLResponse(
 		writer,
-		"settings",
+		fmt.Appendf([]byte{}, responseSuccessFmt, "Successfully updated your profile information"),
 		http.StatusOK,
-		page,
 		nil,
 		nil,
 	)
@@ -132,9 +96,6 @@ type settingsChangePasswordPage struct {
 	ProfileID        string
 	Title            string
 	SettingsCategory string
-	FailureMessage   string
-	SuccessMessage   string
-	FieldErrors      map[string]string
 }
 
 type settingsChangePasswordForm struct {
@@ -143,29 +104,29 @@ type settingsChangePasswordForm struct {
 	confirmedNewPassword string
 }
 
-func (f *settingsChangePasswordForm) valid() (map[string]string, bool) {
-	fieldErrs := make(map[string]string)
-
+func (f *settingsChangePasswordForm) validate() (fieldErrorLabel, error) {
 	if utf8.RuneCountInString(f.newPassword) < 8 {
-		fieldErrs["NewPassword"] = "The password must be at least 8 characters long"
-
-		return fieldErrs, false
+		return fieldErrorLabel{
+			labelID: "new_password_error",
+			message: "The new password must be at least 8 characters long",
+		}, formValidationError{reason: "the password is less than 8 characters long"}
 	}
 
 	if f.newPassword != f.confirmedNewPassword {
-		fieldErrs["NewPassword"] = "Your passwords did not match"
-		fieldErrs["ConfirmedNewPassword"] = "Your passwords did not match"
-
-		return fieldErrs, false
+		return fieldErrorLabel{
+			labelID: "confirmed_password_error",
+			message: "Your passwords do not match",
+		}, formValidationError{"the #new_password and #confirmed_password values do not match"}
 	}
 
 	if f.newPassword == f.currentPassword {
-		fieldErrs["NewPassword"] = "Your new password must be different from your current password"
-
-		return fieldErrs, false
+		return fieldErrorLabel{
+			labelID: "new_password_error",
+			message: "The new password must be different from your current password",
+		}, formValidationError{"the new password is the same as the current password"}
 	}
 
-	return nil, true
+	return fieldErrorLabel{}, nil
 }
 
 func (s *Server) getUpdatePasswordPage(writer http.ResponseWriter, _ *http.Request, profileID string) {
@@ -174,12 +135,9 @@ func (s *Server) getUpdatePasswordPage(writer http.ResponseWriter, _ *http.Reque
 		ProfileID:        profileID,
 		Title:            updateProfilePasswordPageTitle(),
 		SettingsCategory: settingsPasswordChange,
-		FailureMessage:   "",
-		SuccessMessage:   "",
-		FieldErrors:      map[string]string{},
 	}
 
-	s.sendHTMLResponse(
+	s.sendHTMLResponseWithTemplate(
 		writer,
 		"settings",
 		http.StatusOK,
@@ -196,24 +154,21 @@ func (s *Server) updateProfilePassword(writer http.ResponseWriter, request *http
 		confirmedNewPassword: request.PostFormValue("confirmedNewPassword"),
 	}
 
-	fieldErrs, valid := form.valid()
-	if !valid {
-		page := settingsChangePasswordPage{
-			ActiveTab:        activeTabSettings,
-			ProfileID:        profileID,
-			Title:            updateProfilePasswordPageTitle(),
-			SettingsCategory: settingsPasswordChange,
-			FailureMessage:   "Invalid form",
-			SuccessMessage:   "",
-			FieldErrors:      fieldErrs,
-		}
+	fieldErrorLabel, err := form.validate()
+	if err != nil {
+		writer.Header().Set("HX-Retarget", "#"+fieldErrorLabel.labelID)
+		writer.Header().Set("HX-Reswap", "outerHTML")
 
 		s.sendHTMLResponse(
 			writer,
-			"settings",
+			fmt.Appendf(
+				[]byte{},
+				responselabelErrorFmt,
+				fieldErrorLabel.labelID,
+				fieldErrorLabel.message,
+			),
 			http.StatusUnprocessableEntity,
-			page,
-			errors.New("invalid form"),
+			fmt.Errorf("error validating the form: %w", err),
 			nil,
 		)
 
@@ -222,21 +177,10 @@ func (s *Server) updateProfilePassword(writer http.ResponseWriter, request *http
 
 	profile, err := database.GetProfile(s.boltdb, profileID)
 	if err != nil {
-		page := settingsChangePasswordPage{
-			ActiveTab:        activeTabSettings,
-			ProfileID:        profileID,
-			Title:            updateProfilePasswordPageTitle(),
-			SettingsCategory: settingsPasswordChange,
-			FailureMessage:   "Unable to change the password",
-			SuccessMessage:   "",
-			FieldErrors:      map[string]string{},
-		}
-
 		s.sendHTMLResponse(
 			writer,
-			"settings",
+			fmt.Appendf([]byte{}, responseFailureFmt, "Unable to change the password"),
 			http.StatusInternalServerError,
-			page,
 			nil,
 			fmt.Errorf("error retrieving the profile: %w", err),
 		)
@@ -246,21 +190,10 @@ func (s *Server) updateProfilePassword(writer http.ResponseWriter, request *http
 
 	err = auth.CheckPasswordHash(profile.HashedPassword, form.currentPassword)
 	if err != nil {
-		page := settingsChangePasswordPage{
-			ActiveTab:        activeTabSettings,
-			ProfileID:        profileID,
-			Title:            updateProfilePasswordPageTitle(),
-			SettingsCategory: settingsPasswordChange,
-			FailureMessage:   "Unable to authorize the password change",
-			SuccessMessage:   "",
-			FieldErrors:      map[string]string{},
-		}
-
 		s.sendHTMLResponse(
 			writer,
-			"settings",
+			fmt.Appendf([]byte{}, responseFailureFmt, "Unable to authorize the password change"),
 			http.StatusUnauthorized,
-			page,
 			fmt.Errorf("password verification failed: %w", err),
 			nil,
 		)
@@ -270,21 +203,10 @@ func (s *Server) updateProfilePassword(writer http.ResponseWriter, request *http
 
 	newHashedPassword, err := auth.HashPassword(form.newPassword)
 	if err != nil {
-		page := settingsChangePasswordPage{
-			ActiveTab:        activeTabSettings,
-			ProfileID:        profileID,
-			Title:            updateProfilePasswordPageTitle(),
-			SettingsCategory: settingsPasswordChange,
-			FailureMessage:   "Unable to change the password",
-			SuccessMessage:   "",
-			FieldErrors:      map[string]string{},
-		}
-
 		s.sendHTMLResponse(
 			writer,
-			"settings",
+			fmt.Appendf([]byte{}, responseFailureFmt, "Unable to change the password"),
 			http.StatusInternalServerError,
-			page,
 			nil,
 			fmt.Errorf("error hashing the password: %w", err),
 		)
@@ -294,21 +216,10 @@ func (s *Server) updateProfilePassword(writer http.ResponseWriter, request *http
 
 	err = database.UpdateHashedPassword(s.boltdb, profileID, newHashedPassword)
 	if err != nil {
-		page := settingsChangePasswordPage{
-			ActiveTab:        activeTabSettings,
-			ProfileID:        profileID,
-			Title:            updateProfilePasswordPageTitle(),
-			SettingsCategory: settingsPasswordChange,
-			FailureMessage:   "Unable to change the password",
-			SuccessMessage:   "",
-			FieldErrors:      map[string]string{},
-		}
-
 		s.sendHTMLResponse(
 			writer,
-			"settings",
+			fmt.Appendf([]byte{}, responseFailureFmt, "Unable to change the password"),
 			http.StatusInternalServerError,
-			page,
 			nil,
 			fmt.Errorf("error saving the new password to the database: %w", err),
 		)
@@ -316,21 +227,10 @@ func (s *Server) updateProfilePassword(writer http.ResponseWriter, request *http
 		return
 	}
 
-	page := settingsChangePasswordPage{
-		ActiveTab:        activeTabSettings,
-		ProfileID:        profileID,
-		Title:            updateProfilePasswordPageTitle(),
-		SettingsCategory: settingsPasswordChange,
-		FailureMessage:   "",
-		SuccessMessage:   "Password changed successfully",
-		FieldErrors:      map[string]string{},
-	}
-
 	s.sendHTMLResponse(
 		writer,
-		"settings",
+		fmt.Appendf([]byte{}, responseSuccessFmt, "Password changed successfully"),
 		http.StatusOK,
-		page,
 		nil,
 		nil,
 	)

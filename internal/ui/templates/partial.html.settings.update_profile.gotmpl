@@ -5,15 +5,9 @@
 {{ define "settings_update_profile_info" }}
 <h1>Update your profile information</h1>
 
-{{ if gt (len .FailureMessage) 0 }}
-<div class="failure">{{ .FailureMessage }}</div>
-{{ end }}
+<div id="status"></div>
 
-{{ if gt (len .SuccessMessage) 0 }}
-<div class="success">{{ .SuccessMessage }}</div>
-{{ end }}
-
-<form action="/profile/settings/info" method="POST" novalidate>
+<form novalidate>
     <div>
         <label class="field">Display name</label><br />
         <input type="text" name="profileDisplayName" value="{{ .DisplayName }}"><br />
@@ -31,7 +25,13 @@
         <input type="url" name="profilePhotoURL" value="{{ .PhotoURL }}"><br />
     </div>
     <div>
-        <button class="button_left button_form" type="submit">Update profile</button>
+        <button class="button_left button_form" type="submit"
+                hx-post="/profile/settings/info"
+                hx-trigger="click"
+                hx-swap="outerHTML"
+                hx-target="#status">
+            Update profile
+        </button>
     </div>
 </form>
 {{ end }}
